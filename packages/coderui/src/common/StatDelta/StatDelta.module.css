@@ -1,0 +1,14 @@
+.delta {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.add {
+  color: var(--coder-diff-add);
+}
+
+.remove {
+  color: var(--coder-diff-remove);
+}

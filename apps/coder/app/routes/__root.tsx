@@ -1,7 +1,8 @@
 import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
 import { useState } from "react";
 import { createQueryClient } from "../core/queryClient";
-import { CoderStoreBinder, CoderUIProvider } from "@taylordb/coderui";
+import { CoderStoreBinder } from "../coderui/features/CoderCore";
+import { CoderUIProvider } from "../coderui/system";
 import { createCodexAdapter, createGitClient } from "../features/Coder/adapters/codexAdapter";
 import { FixturePlaybackConnector } from "../features/fixture-playback";
 import "@taylordb/coderui/style.css";

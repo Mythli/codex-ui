@@ -25,6 +25,7 @@ export type FloatingOverlayProps = {
   children: ReactNode | ((input: { close(): void }) => ReactNode);
   className?: string;
   contentClassName?: string;
+  modalFocus?: boolean;
   offsetPx?: number;
   placement?: Placement;
   renderTrigger(input: FloatingOverlayRenderTriggerProps): ReactElement;
@@ -34,6 +35,7 @@ export function FloatingOverlay({
   children,
   className,
   contentClassName,
+  modalFocus = false,
   offsetPx = 8,
   placement = "bottom-end",
   renderTrigger
@@ -64,7 +66,7 @@ export function FloatingOverlay({
       return;
     }
 
-    const themeRoot = reference?.closest(".coder-theme-light, .coder-theme-dark");
+    const themeRoot = reference.closest(".coder-theme-light, .coder-theme-dark");
     setThemeClassName(
       themeRoot?.classList.contains("coder-theme-light")
         ? "coder-theme-light"
@@ -101,13 +103,11 @@ export function FloatingOverlay({
       })}
       {isOpen ? (
         <FloatingPortal root={typeof document === "undefined" ? undefined : document.body}>
-          <FloatingFocusManager context={context} modal={false}>
+          <FloatingFocusManager context={context} modal={modalFocus}>
             <div
               ref={refs.setFloating}
               style={{ ...floatingStyles, zIndex: "var(--coder-z-overlay)" } as CSSProperties}
-              {...getFloatingProps({
-                className: floatingClassName
-              })}
+              {...getFloatingProps({ className: floatingClassName })}
             >
               <div
                 className={[styles.content, isVisible ? styles.contentVisible : "", contentClassName ?? ""]

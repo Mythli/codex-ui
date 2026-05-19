@@ -1,0 +1,78 @@
+.dialog {
+  background: var(--coder-surface);
+  border: 1px solid var(--coder-border);
+  border-radius: var(--coder-radius-md);
+  box-shadow: var(--coder-shadow-lg);
+  color: var(--coder-text);
+  display: grid;
+  gap: var(--coder-space-4);
+  max-width: min(100%, 480px);
+  min-width: 0;
+  overflow-wrap: anywhere;
+  padding: var(--coder-space-5);
+}
+
+.compact {
+  max-width: min(100%, 420px);
+}
+
+.wide {
+  max-width: min(100%, 640px);
+}
+
+.header {
+  display: grid;
+  gap: var(--coder-space-2);
+  min-width: 0;
+}
+
+.title {
+  color: var(--coder-text);
+  font-size: var(--coder-font-size-xl);
+  font-weight: 650;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.description {
+  color: var(--coder-muted);
+  font-size: var(--coder-font-size-base);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.body {
+  color: var(--coder-text);
+  display: grid;
+  gap: var(--coder-space-3);
+  min-width: 0;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--coder-space-2);
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.error {
+  color: var(--coder-danger);
+  font-size: var(--coder-font-size-base);
+  line-height: 1.45;
+  margin: 0;
+}
+
+@media (max-width: 480px) {
+  .dialog {
+    padding: var(--coder-space-4);
+  }
+
+  .actions {
+    flex-direction: column-reverse;
+  }
+
+  .actions > * {
+    width: 100%;
+  }
+}

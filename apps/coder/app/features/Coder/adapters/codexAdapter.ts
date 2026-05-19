@@ -3,7 +3,7 @@ import {
   createCodexUIRuntime
 } from "@taylordb/codex/browser";
 import { GitClient, createGitSocketIoTransport } from "@taylordb/git-observer/browser";
-import type { CoderReasoningEffort, CoderRuntimeAdapter } from "@taylordb/coderui";
+import type { CoderReasoningEffort, CoderRuntimeAdapter } from "../../../coderui/features/CoderCore";
 import { io } from "socket.io-client";
 import { getAppSocketAuth } from "../../../core/appSession";
 

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { CoderWorkspace } from "@taylordb/coderui";
+import { CoderWorkspace } from "../coderui/features/Coder";
 
 export const Route = createFileRoute("/chats/$chatId")({
   component: ChatRoute

@@ -1,0 +1,100 @@
+.overlayShell {
+  background: transparent;
+  display: grid;
+  max-height: min(420px, calc(100vh - 80px));
+  overflow: hidden;
+  width: min(440px, calc(100vw - 20px));
+}
+
+.header {
+  align-items: center;
+  border-bottom: 1px solid var(--coder-border);
+  display: flex;
+  gap: var(--coder-space-2);
+  justify-content: space-between;
+  min-height: 38px;
+  padding: 0 var(--coder-space-3);
+}
+
+.title {
+  font-size: var(--coder-font-size-sm);
+  font-weight: 600;
+}
+
+.head {
+  color: var(--coder-faint);
+  font-family: var(--coder-font-family-mono);
+  font-size: var(--coder-font-size-xs);
+}
+
+.list {
+  max-height: 332px;
+  overflow-y: auto;
+  padding: var(--coder-space-1);
+}
+
+.labelLine {
+  align-items: baseline;
+  display: flex;
+  gap: var(--coder-space-2);
+  min-width: 0;
+}
+
+.label {
+  color: var(--coder-muted);
+  flex: 0 0 auto;
+  font-family: var(--coder-font-family-mono);
+  font-size: var(--coder-font-size-xs);
+}
+
+.message {
+  color: var(--coder-text);
+  font-size: var(--coder-font-size-base);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.check {
+  color: var(--coder-success);
+}
+
+.rowSpinner {
+  align-items: center;
+  display: inline-flex;
+  height: 18px;
+  justify-content: center;
+  transform: scale(0.78);
+  transform-origin: center;
+  width: 18px;
+}
+
+.errorRow {
+  background: var(--coder-danger-bg);
+  border: 1px solid var(--coder-border);
+  border-radius: var(--coder-radius-sm);
+  color: var(--coder-danger);
+  font-size: var(--coder-font-size-sm);
+  margin: var(--coder-space-1);
+  padding: var(--coder-space-2);
+}
+
+.stateRow {
+  align-items: center;
+  color: var(--coder-muted);
+  display: flex;
+  font-size: var(--coder-font-size-sm);
+  gap: var(--coder-space-2);
+  justify-content: center;
+  min-height: 58px;
+  padding: var(--coder-space-3);
+}
+
+.sentinel {
+  height: 1px;
+}
+
+.triggerActive {
+  background: var(--coder-sidebar-hover);
+  color: var(--coder-text);
+}

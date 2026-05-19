@@ -41,6 +41,12 @@
   color: var(--coder-token-description-foreground);
 }
 
+.danger {
+  background: var(--coder-danger);
+  border-color: var(--coder-danger);
+  color: var(--coder-text-inverse);
+}
+
 .button:hover:not(:disabled) {
   background: var(--coder-token-list-hover-background);
   color: var(--coder-token-foreground);
@@ -50,6 +56,12 @@
   background: color-mix(in srgb, var(--coder-token-foreground) 82%, transparent);
   border-color: transparent;
   color: var(--coder-token-dropdown-background);
+}
+
+.danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--coder-danger) 84%, var(--coder-token-foreground));
+  border-color: transparent;
+  color: var(--coder-text-inverse);
 }
 
 .icon {

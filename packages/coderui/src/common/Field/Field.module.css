@@ -1,0 +1,17 @@
+.field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.label {
+  color: var(--coder-muted);
+  font-size: var(--coder-font-size-sm);
+  line-height: 1.35;
+}
+
+.hint {
+  color: var(--coder-muted);
+  font-size: var(--coder-font-size-sm);
+  line-height: 1.35;
+}

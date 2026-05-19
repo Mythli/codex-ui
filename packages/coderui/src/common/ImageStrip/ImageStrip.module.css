@@ -1,0 +1,15 @@
+.strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.image {
+  border: 1px solid var(--coder-border);
+  border-radius: var(--coder-radius-sm);
+  display: block;
+  max-height: 160px;
+  max-width: 220px;
+  object-fit: contain;
+}

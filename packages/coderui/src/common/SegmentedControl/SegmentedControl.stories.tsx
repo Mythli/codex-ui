@@ -1,5 +1,4 @@
 import type { StoryFn } from "@storybook/react";
-import { useState } from "react";
 import { FiColumns, FiMessageSquare, FiMonitor } from "react-icons/fi";
 import { StoryFrame } from "../../system/StoryFrame";
 import { SegmentedControl } from "./SegmentedControl";
@@ -15,11 +14,9 @@ export default {
 };
 
 export const Modes: StoryFn = () => {
-  const [value, setValue] = useState<(typeof options)[number]["id"]>("both");
-
   return (
     <StoryFrame>
-      <SegmentedControl ariaLabel="Workspace layout" onChange={setValue} options={options} value={value} />
+      <SegmentedControl ariaLabel="Workspace layout" onChange={() => undefined} options={options} value="both" />
     </StoryFrame>
   );
 };

@@ -67,6 +67,26 @@ textarea {
   --coder-main-surface: #171717;
   --coder-scrim: rgba(0, 0, 0, 0.18);
   --coder-scrim-strong: rgba(0, 0, 0, 0.42);
+  --coder-composer-surface: #2f2f2f;
+  --coder-composer-surface-active: #333637;
+  --coder-composer-panel: #303030;
+  --coder-composer-border: rgba(255, 255, 255, 0.045);
+  --coder-composer-border-strong: rgba(255, 255, 255, 0.22);
+  --coder-composer-text: rgba(255, 255, 255, 0.9);
+  --coder-composer-text-muted: rgba(255, 255, 255, 0.58);
+  --coder-composer-text-faint: rgba(255, 255, 255, 0.34);
+  --coder-composer-chip-bg: rgba(255, 255, 255, 0.07);
+  --coder-composer-chip-hover-bg: rgba(255, 255, 255, 0.08);
+  --coder-composer-chip-border: rgba(255, 255, 255, 0.08);
+  --coder-composer-control-hover-bg: rgba(255, 255, 255, 0.065);
+  --coder-composer-access: #ff8f4d;
+  --coder-composer-danger: #ff9d86;
+  --coder-composer-submit-bg: rgba(255, 255, 255, 0.62);
+  --coder-composer-submit-hover-bg: rgba(255, 255, 255, 0.86);
+  --coder-composer-submit-text: #1f1f1f;
+  --coder-composer-context-ring-fill: rgba(255, 255, 255, 0.62);
+  --coder-composer-context-ring-track: rgba(255, 255, 255, 0.18);
+  --coder-composer-spinner-track: rgba(255, 255, 255, 0.16);
 
   /* Semantic colors */
   --coder-success: #8bdc91;
@@ -79,6 +99,9 @@ textarea {
   --coder-diff-remove: var(--coder-danger);
   --coder-info: #7ab7ff;
   --coder-info-bg: rgba(122, 183, 255, 0.14);
+  --coder-activity-running: #6bb6ff;
+  --coder-activity-unread: #2f8cff;
+  --coder-activity-unread-ring: color-mix(in srgb, var(--coder-activity-unread) 20%, transparent);
 
   /* Typography */
   --coder-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", ui-sans-serif, system-ui, sans-serif;
@@ -159,6 +182,26 @@ textarea {
   --coder-main-surface: #ffffff;
   --coder-scrim: rgba(20, 24, 30, 0.12);
   --coder-scrim-strong: rgba(20, 24, 30, 0.24);
+  --coder-composer-surface: #ffffff;
+  --coder-composer-surface-active: #f2f5f8;
+  --coder-composer-panel: #ffffff;
+  --coder-composer-border: rgba(20, 24, 30, 0.1);
+  --coder-composer-border-strong: rgba(37, 99, 235, 0.28);
+  --coder-composer-text: rgba(20, 24, 30, 0.9);
+  --coder-composer-text-muted: rgba(20, 24, 30, 0.62);
+  --coder-composer-text-faint: rgba(20, 24, 30, 0.42);
+  --coder-composer-chip-bg: rgba(20, 24, 30, 0.045);
+  --coder-composer-chip-hover-bg: rgba(20, 24, 30, 0.07);
+  --coder-composer-chip-border: rgba(20, 24, 30, 0.08);
+  --coder-composer-control-hover-bg: rgba(20, 24, 30, 0.06);
+  --coder-composer-access: #c2410c;
+  --coder-composer-danger: #c7352d;
+  --coder-composer-submit-bg: rgba(20, 24, 30, 0.78);
+  --coder-composer-submit-hover-bg: rgba(20, 24, 30, 0.9);
+  --coder-composer-submit-text: #ffffff;
+  --coder-composer-context-ring-fill: rgba(20, 24, 30, 0.62);
+  --coder-composer-context-ring-track: rgba(20, 24, 30, 0.16);
+  --coder-composer-spinner-track: rgba(20, 24, 30, 0.16);
   --coder-success: #138a43;
   --coder-success-bg: rgba(19, 138, 67, 0.12);
   --coder-diff-add: var(--coder-success);
@@ -167,6 +210,9 @@ textarea {
   --coder-diff-remove: var(--coder-danger);
   --coder-info: #2563eb;
   --coder-info-bg: rgba(37, 99, 235, 0.12);
+  --coder-activity-running: #2563eb;
+  --coder-activity-unread: #1d4ed8;
+  --coder-activity-unread-ring: color-mix(in srgb, var(--coder-activity-unread) 18%, transparent);
   --coder-warning: #9a6700;
   --coder-warning-bg: rgba(154, 103, 0, 0.12);
   --coder-shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.05);
@@ -174,51 +220,6 @@ textarea {
   --coder-shadow-md: 0 8px 24px rgba(20, 24, 30, 0.1);
   --coder-shadow-lg: 0 18px 48px rgba(20, 24, 30, 0.14);
   --coder-shadow-xl: 24px 0 70px rgba(20, 24, 30, 0.18);
-}
-
-@media (prefers-color-scheme: light) {
-  :root:not(.coder-theme-dark) {
-    --coder-bg: #f7f7f8;
-    --coder-border: rgba(20, 24, 30, 0.12);
-    --coder-border-strong: rgba(20, 24, 30, 0.2);
-    --coder-code-bg: rgba(20, 24, 30, 0.06);
-    --coder-code-text: #9a3412;
-    --coder-faint: rgba(20, 24, 30, 0.42);
-    --coder-muted: rgba(20, 24, 30, 0.64);
-    --coder-panel: #e9e9ea;
-    --coder-chat-user-bg: #e9e9ea;
-    --coder-sidebar: #f7f7f8;
-    --coder-sidebar-elevated: #ffffff;
-    --coder-sidebar-active: #e6e8ec;
-    --coder-sidebar-hover: rgba(20, 24, 30, 0.055);
-    --coder-sidebar-text: rgba(20, 24, 30, 0.8);
-    --coder-sidebar-muted: rgba(20, 24, 30, 0.5);
-    --coder-sidebar-faint: rgba(20, 24, 30, 0.3);
-    --coder-surface: #ffffff;
-    --coder-surface-hover: #eceef3;
-    --coder-surface-muted: rgba(20, 24, 30, 0.04);
-    --coder-text: #171717;
-    --coder-text-inverse: #ffffff;
-    --coder-workspace-bg: #ffffff;
-    --coder-main-surface: #ffffff;
-    --coder-scrim: rgba(20, 24, 30, 0.12);
-    --coder-scrim-strong: rgba(20, 24, 30, 0.24);
-    --coder-success: #138a43;
-    --coder-success-bg: rgba(19, 138, 67, 0.12);
-    --coder-diff-add: var(--coder-success);
-    --coder-danger: #c7352d;
-    --coder-danger-bg: rgba(199, 53, 45, 0.12);
-    --coder-diff-remove: var(--coder-danger);
-    --coder-info: #2563eb;
-    --coder-info-bg: rgba(37, 99, 235, 0.12);
-    --coder-warning: #9a6700;
-    --coder-warning-bg: rgba(154, 103, 0, 0.12);
-    --coder-shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.05);
-    --coder-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
-    --coder-shadow-md: 0 8px 24px rgba(20, 24, 30, 0.1);
-    --coder-shadow-lg: 0 18px 48px rgba(20, 24, 30, 0.14);
-    --coder-shadow-xl: 24px 0 70px rgba(20, 24, 30, 0.18);
-  }
 }
 
 :root,

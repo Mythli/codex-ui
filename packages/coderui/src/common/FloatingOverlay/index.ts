@@ -1,1 +1,5 @@
-export { FloatingOverlay, type FloatingOverlayProps, type FloatingOverlayRenderTriggerProps } from "./FloatingOverlay";
+export {
+  FloatingOverlay,
+  type FloatingOverlayProps,
+  type FloatingOverlayRenderTriggerProps
+} from "./FloatingOverlay";
