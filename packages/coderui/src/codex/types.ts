@@ -20,9 +20,13 @@ export type CodexProjectGroup = {
 };
 
 export type CodexAttachment = {
+  dataUrl?: string;
+  extension?: string;
   id: string;
   kind: "image" | "file";
+  mimeType?: string;
   name: string;
+  previewUrl?: string;
   sizeLabel: string;
 };
 

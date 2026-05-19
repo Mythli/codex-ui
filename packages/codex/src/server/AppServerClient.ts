@@ -1,9 +1,11 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import type { CodexTransport } from "../core/transport/CodexTransport.js";
+import type { CodexTransportRequestOptions } from "../core/transport/CodexTransport.js";
 import {
   createCodexWireParserMiddleware,
   parseCodexProtocolRequestTraffic,
   parseCodexProtocolErrorResponseTraffic,
+  type CodexProtocolMetadata,
   type CodexProtocolResponse,
   type CodexProtocolTraffic,
   type CodexRequestMethod,
@@ -15,6 +17,7 @@ import { resolveCodexBinary } from "./codexBinary.js";
 type PendingRequest = {
   method: CodexRequestMethod;
   params: unknown;
+  metadata?: CodexProtocolMetadata;
   resolve: (value: unknown) => void;
   reject: (reason: unknown) => void;
   silent?: boolean;
@@ -93,22 +96,34 @@ export class AppServerClient implements CodexTransport {
     this.notify("initialized");
   }
 
-  request<M extends CodexRequestMethod>(method: M, params: CodexRequestParams<M>): Promise<CodexProtocolResponse<M>> {
-    return this.requestWithOptions(method, params);
+  request<M extends CodexRequestMethod>(
+    method: M,
+    params: CodexRequestParams<M>,
+    options: CodexTransportRequestOptions = {}
+  ): Promise<CodexProtocolResponse<M>> {
+    return this.requestWithOptions(method, params, options);
   }
 
-  requestInternal<M extends CodexRequestMethod>(method: M, params: CodexRequestParams<M>): Promise<CodexProtocolResponse<M>> {
-    return this.requestWithOptions(method, params, { silent: true });
+  requestInternal<M extends CodexRequestMethod>(
+    method: M,
+    params: CodexRequestParams<M>,
+    options: CodexTransportRequestOptions = {}
+  ): Promise<CodexProtocolResponse<M>> {
+    return this.requestWithOptions(method, params, { ...options, silent: true });
   }
 
   private requestWithOptions<M extends CodexRequestMethod>(
     method: M,
     params: CodexRequestParams<M>,
-    options: { silent?: boolean } = {}
+    options: CodexTransportRequestOptions & { silent?: boolean } = {}
   ): Promise<CodexProtocolResponse<M>> {
     const id = this.nextId++;
     const startedAt = Date.now();
-    const traffic = this.parserMiddleware.observeRequest(method, params, { id, timestampMs: startedAt });
+    const traffic = this.parserMiddleware.observeRequest(method, params, {
+      id,
+      metadata: options.metadata,
+      timestampMs: startedAt
+    });
 
     return new Promise<CodexProtocolResponse<M>>((resolve, reject) => {
       const timeout = setTimeout(() => {
@@ -117,6 +132,7 @@ export class AppServerClient implements CodexTransport {
       unrefTimer(timeout);
       this.pending.set(id, {
         method,
+        metadata: options.metadata,
         params: traffic.params,
         resolve: (value) => resolve(value as CodexProtocolResponse<M>),
         reject,
@@ -207,7 +223,7 @@ export class AppServerClient implements CodexTransport {
       this.pending.delete(responseId);
       clearTimeout(pending.timeout);
       if (!pending.silent) {
-        this.emitTraffic(parsed);
+        this.emitTraffic(withResponseMetadata(parsed, pending));
       }
       if (parsed.kind === "responseError") {
         pending.reject(parsed.error);
@@ -240,7 +256,7 @@ export class AppServerClient implements CodexTransport {
     for (const [id, pending] of this.pending) {
       clearTimeout(pending.timeout);
       if (!pending.silent) {
-        this.emitTraffic(errorTraffic(id, pending.method, error));
+        this.emitTraffic(errorTraffic(id, pending.method, error, pending.metadata));
       }
       pending.reject(error);
     }
@@ -264,7 +280,7 @@ export class AppServerClient implements CodexTransport {
       error: serializeDiagnosticError(error)
     })}`);
     if (!pending.silent) {
-      this.emitTraffic(errorTraffic(id, pending.method, error));
+      this.emitTraffic(errorTraffic(id, pending.method, error, pending.metadata));
     }
     pending.reject(error);
   }
@@ -303,9 +319,25 @@ function defaultServerRequestResponse(method: string): unknown {
   return {};
 }
 
-function errorTraffic(id: number, method: CodexRequestMethod, error: unknown): Extract<CodexProtocolTraffic, { kind: "responseError" }> {
+function withResponseMetadata(
+  traffic: CodexProtocolTraffic,
+  pending: PendingRequest
+): CodexProtocolTraffic {
+  if (!pending.metadata || (traffic.kind !== "response" && traffic.kind !== "responseError")) {
+    return traffic;
+  }
+  return { ...traffic, metadata: pending.metadata } as CodexProtocolTraffic;
+}
+
+function errorTraffic(
+  id: number,
+  method: CodexRequestMethod,
+  error: unknown,
+  metadata?: CodexProtocolMetadata
+): Extract<CodexProtocolTraffic, { kind: "responseError" }> {
   return parseCodexProtocolErrorResponseTraffic(method, serializeError(error), {
     id,
+    metadata,
     timestampMs: Date.now()
   });
 }

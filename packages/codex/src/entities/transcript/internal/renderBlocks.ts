@@ -15,42 +15,106 @@ import type {
   CodexTranscriptFile,
   CodexTranscriptItem,
   CodexTranscriptTurn,
+  CodexTranscriptTurnState,
   CodexToolEntry,
   CodexUnsupportedWorkEntry,
   CodexWorkSegment,
   CodexWorkEntry
 } from "../model.js";
 
+const stateTurnRenderBlockCache = new WeakMap<CodexTranscriptTurnState, {
+  blocks: CodexRenderBlock[];
+  cwd?: string;
+}>();
+
 export function buildCodexRenderBlocks(input: CodexTranscript | CodexTranscriptState | undefined): CodexRenderBlock[] {
   if (!input) {
     return [];
   }
-  const transcript = "turnOrder" in input ? selectTranscriptFromState(input) : input;
-  return transcript.turns.flatMap((turn) => renderBlocksForTurn(turn, transcript.cwd));
+  if ("turnOrder" in input) {
+    const hiddenTurnIds = duplicateLiveTurnIds(input);
+    return input.turnOrder.flatMap((turnId) => {
+      if (hiddenTurnIds.has(turnId)) {
+        return [];
+      }
+      const turn = input.turnsById[turnId];
+      return turn ? renderBlocksForTurnState(turn, input.cwd) : [];
+    });
+  }
+  return input.turns.flatMap((turn) => renderBlocksForTurn(turn, input.cwd));
 }
 
-function selectTranscriptFromState(state: CodexTranscriptState): CodexTranscript {
+function renderBlocksForTurnState(turn: CodexTranscriptTurnState, cwd?: string): CodexRenderBlock[] {
+  const cached = stateTurnRenderBlockCache.get(turn);
+  if (cached && cached.cwd === cwd) {
+    return cached.blocks;
+  }
+  const blocks = renderBlocksForTurn(selectTranscriptTurnFromState(turn), cwd);
+  stateTurnRenderBlockCache.set(turn, { blocks, cwd });
+  return blocks;
+}
+
+function selectTranscriptTurnFromState(turn: CodexTranscriptTurnState): CodexTranscriptTurn {
+  return {
+    id: turn.id,
+    status: turn.status,
+    source: turn.source,
+    startedAtMs: turn.startedAtMs,
+    completedAtMs: turn.completedAtMs,
+    durationMs: turn.durationMs,
+    filesChanged: turn.filesChanged,
+    items: turn.itemOrder.flatMap((itemId) => turn.itemsById[itemId] ? [turn.itemsById[itemId]!] : [])
+  };
+}
+
+export function selectTranscriptFromState(state: CodexTranscriptState): CodexTranscript {
+  const hiddenTurnIds = duplicateLiveTurnIds(state);
   return {
     threadId: state.threadId,
     title: state.title,
     cwd: state.cwd,
     turns: state.turnOrder.flatMap((turnId) => {
-      const turn = state.turnsById[turnId];
-      if (!turn) {
+      if (hiddenTurnIds.has(turnId)) {
         return [];
       }
-      return [{
-        id: turn.id,
-        status: turn.status,
-        source: turn.source,
-        startedAtMs: turn.startedAtMs,
-        completedAtMs: turn.completedAtMs,
-        durationMs: turn.durationMs,
-        filesChanged: turn.filesChanged,
-        items: turn.itemOrder.flatMap((itemId) => turn.itemsById[itemId] ? [turn.itemsById[itemId]!] : [])
-      }];
+      const turn = state.turnsById[turnId];
+      return turn ? [selectTranscriptTurnFromState(turn)] : [];
     })
   };
+}
+
+function duplicateLiveTurnIds(state: CodexTranscriptState): Set<string> {
+  const completedUserKeys = new Set<string>();
+  const hidden = new Set<string>();
+  for (const turnId of state.turnOrder) {
+    const turn = state.turnsById[turnId];
+    const userKey = turn ? turnUserMessageKey(turn) : undefined;
+    if (!turn || !userKey) {
+      continue;
+    }
+    if (turn.status !== "completed" && completedUserKeys.has(userKey)) {
+      hidden.add(turnId);
+      continue;
+    }
+    if (turn.status === "completed") {
+      completedUserKeys.add(userKey);
+    }
+  }
+  return hidden;
+}
+
+function turnUserMessageKey(turn: CodexTranscriptTurnState): string | undefined {
+  for (const itemId of turn.itemOrder) {
+    const item = turn.itemsById[itemId];
+    if (item?.type === "userMessage") {
+      const imageKey = (item.images ?? [])
+        .map((image) => image.path ?? image.url ?? image.dataUrl ?? image.id)
+        .sort()
+        .join("\n");
+      return `${(item.text ?? "").replace(/\s+/g, " ").trim()}\n${imageKey}`;
+    }
+  }
+  return undefined;
 }
 
 function renderBlocksForTurn(turn: CodexTranscriptTurn, cwd?: string): CodexRenderBlock[] {
@@ -104,6 +168,7 @@ function renderBlocksForTurn(turn: CodexTranscriptTurn, cwd?: string): CodexRend
         turnId: turn.id,
         cwd,
         text: item.text ?? "",
+        attachments: item.attachments ?? [],
         images: item.images ?? []
       });
       continue;
@@ -747,8 +812,10 @@ function aggregateFileChangeArtifact(turn: CodexTranscriptTurn): CodexFileChange
       filesByPath.set(file.path, {
         ...file,
         additions: (existing?.additions ?? 0) + (file.additions ?? 0),
+        content: file.content ?? existing?.content,
         deletions: (existing?.deletions ?? 0) + (file.deletions ?? 0),
         diff: file.diff ?? existing?.diff,
+        kind: file.kind ?? existing?.kind,
         asset: file.asset ?? existing?.asset
       });
     }

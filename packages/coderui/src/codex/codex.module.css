@@ -56,6 +56,12 @@
   padding: 0 8px;
 }
 
+.iconButton:disabled {
+  color: var(--coder-muted);
+  cursor: default;
+  opacity: 0.72;
+}
+
 .dangerButton {
   color: var(--coder-danger);
 }
@@ -106,6 +112,28 @@
   gap: 8px;
   min-height: 28px;
   padding: 0 8px;
+}
+
+.chipThumbnail {
+  border: 1px solid var(--coder-border);
+  border-radius: var(--coder-radius-xs);
+  display: block;
+  height: 22px;
+  object-fit: cover;
+  width: 30px;
+}
+
+.userMessageContent {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.userMessageAttachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
 }
 
 .preview {
@@ -252,20 +280,66 @@
   padding: 14px;
 }
 
+.fileCardActions {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+
+.reviewButton {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--coder-border-strong);
+  border-radius: var(--coder-radius-md);
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  min-height: 32px;
+  padding: 0 12px;
+}
+
 .fileRows {
   border-top: 1px solid var(--coder-border);
   display: grid;
 }
 
 .fileRow {
-  align-items: center;
   background: var(--coder-surface-muted);
   border-bottom: 1px solid var(--coder-border);
   display: grid;
+  min-width: 0;
+}
+
+.fileRow > summary {
+  align-items: center;
+  cursor: pointer;
+  display: grid;
   gap: 8px;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  list-style: none;
   min-height: 40px;
   padding: 0 14px;
+}
+
+.fileRow > summary::-webkit-details-marker {
+  display: none;
+}
+
+.fileRow > summary::after {
+  color: var(--coder-muted);
+  content: "⌄";
+  font-size: var(--coder-font-size-sm);
+}
+
+.fileRow[open] > summary::after {
+  content: "⌃";
+}
+
+.fileDiffDrawer {
+  border-top: 1px solid var(--coder-border);
+  min-width: 0;
+  padding: 10px;
 }
 
 .workEntryRow,

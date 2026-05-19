@@ -49,7 +49,26 @@ export function formatDuration(durationMs: number | undefined) {
 }
 
 export function blockSignature(blocks: readonly CodexRenderBlock[]) {
-  return JSON.stringify(blocks);
+  const lastBlock = blocks.at(-1);
+  if (!lastBlock) {
+    return "empty";
+  }
+  const lastSegmentCount = lastBlock.type === "assistantTurn" ? lastBlock.segments.length : 0;
+  const lastSegment = lastBlock.type === "assistantTurn" ? lastBlock.segments.at(-1) : undefined;
+  const lastSegmentStatus = lastSegment?.type === "work" ? lastSegment.status : undefined;
+  const imageCount = "images" in lastBlock ? lastBlock.images.length : 0;
+  const attachmentCount = lastBlock.type === "userMessage" ? lastBlock.attachments.length : 0;
+  return [
+    blocks.length,
+    lastBlock.id,
+    lastBlock.type,
+    lastBlock.type === "assistantTurn" ? lastBlock.status : "",
+    lastSegmentCount,
+    lastSegment?.id ?? "",
+    lastSegmentStatus ?? "",
+    imageCount,
+    attachmentCount
+  ].join(":");
 }
 
 export function safeJson(value: unknown): string {

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createCodexUIRuntime } from "../../core/CodexUIRuntime.js";
 import type { CodexTransport } from "../../core/transport/CodexTransport.js";
 import {
+  parseCodexProtocolEventTraffic,
   parseCodexProtocolRequestTraffic,
   parseCodexProtocolResponseTraffic,
   type CodexProtocolTraffic,
@@ -17,6 +18,10 @@ describe("thread loading state e2e", () => {
 
     indexThread(runtime, "thread-a", "/tmp/thread-a.jsonl", "2026-05-18T10:00:00.000Z");
     readThread(runtime, "thread-a", "/tmp/thread-a.jsonl", "read-a");
+
+    expect(runtime.state.status).toBe("loading");
+    expect(runtime.state.renderBlocks).toEqual([]);
+
     readSessionFile(runtime, "/tmp/thread-a.jsonl", "read-a-file", "Hello from A");
 
     expect(runtime.state.threadId).toBe("thread-a");
@@ -94,6 +99,7 @@ describe("thread loading state e2e", () => {
 
     indexThread(runtime, "thread-a", "/tmp/thread-a.jsonl", "2026-05-18T10:00:00.000Z");
     readThread(runtime, "thread-a", "/tmp/thread-a.jsonl", "read-a");
+    readSessionFile(runtime, "/tmp/thread-a.jsonl", "read-a-file", "Loaded A");
 
     runtime.dispatch(parseCodexProtocolRequestTraffic("thread/read", {
       threadId: "thread-a",
@@ -137,7 +143,107 @@ describe("thread loading state e2e", () => {
 
     runtime.close();
   });
+
+  it("rekeys an optimistic pending turn when the real turn starts before its user item", () => {
+    const runtime = createCodexUIRuntime({ transport: createManualTransport() });
+
+    indexThread(runtime, "thread-a", "/tmp/thread-a.jsonl", "2026-05-18T10:00:00.000Z");
+    readThread(runtime, "thread-a", "/tmp/thread-a.jsonl", "read-a");
+    runtime.actions.activateThread("thread-a");
+    runtime.dispatch(parseCodexProtocolRequestTraffic("turn/start", {
+      threadId: "thread-a",
+      input: [{ type: "text", text: "hi", text_elements: [] }],
+      cwd: fixtureCwd,
+      approvalPolicy: "never",
+      sandboxPolicy: { type: "readOnly" },
+      model: null,
+      effort: "medium"
+    }, {
+      id: "client-turn-1",
+      metadata: { clientRequestId: "client-turn-1" },
+      timestampMs: 1_000
+    }));
+
+    expect(userMessageTexts(runtime)).toEqual(["hi"]);
+
+    runtime.dispatch(parseCodexProtocolResponseTraffic("turn/start", {
+      turn: { id: "turn-1", status: "running", items: [] }
+    }, {
+      id: "backend-turn-1",
+      metadata: { clientRequestId: "client-turn-1" },
+      timestampMs: 1_050
+    }));
+
+    expect(runtime.state.transcript?.turnOrder).toEqual(["turn-1"]);
+    expect(userMessageTexts(runtime)).toEqual(["hi"]);
+
+    runtime.dispatch(parseCodexProtocolEventTraffic({
+      method: "turn/started",
+      params: {
+        threadId: "thread-a",
+        turnId: "turn-1",
+        turn: { id: "turn-1", status: "running", items: [] }
+      }
+    }, { timestampMs: 1_100 }));
+
+    expect(runtime.state.transcript?.turnOrder).toEqual(["turn-1"]);
+    expect(userMessageTexts(runtime)).toEqual(["hi"]);
+
+    runtime.dispatch(parseCodexProtocolEventTraffic({
+      method: "item/started",
+      params: {
+        threadId: "thread-a",
+        turnId: "turn-1",
+        item: {
+          type: "userMessage",
+          id: "turn-1-user",
+          content: [{ type: "text", text: "hi", text_elements: [] }]
+        }
+      }
+    }, { timestampMs: 1_200 }));
+
+    expect(runtime.state.transcript?.turnOrder).toEqual(["turn-1"]);
+    expect(userMessageTexts(runtime)).toEqual(["hi"]);
+
+    runtime.close();
+  });
+
+  it("merges persisted rollout turns with equivalent optimistic live turns", () => {
+    const runtime = createCodexUIRuntime({ transport: createManualTransport() });
+
+    indexThread(runtime, "thread-a", "/tmp/thread-a.jsonl", "2026-05-18T10:00:00.000Z");
+    readThread(runtime, "thread-a", "/tmp/thread-a.jsonl", "read-a");
+    runtime.actions.activateThread("thread-a");
+    runtime.dispatch(parseCodexProtocolRequestTraffic("turn/start", {
+      threadId: "thread-a",
+      input: [{ type: "text", text: "Run sleep", text_elements: [] }],
+      cwd: fixtureCwd,
+      approvalPolicy: "never",
+      sandboxPolicy: { type: "readOnly" },
+      model: null,
+      effort: "medium"
+    }, {
+      id: "client-turn-1",
+      metadata: { clientRequestId: "client-turn-1" },
+      timestampMs: 1_000
+    }));
+
+    readSessionFileData(runtime, "/tmp/thread-a.jsonl", "read-a-file", rolloutJsonlForTurn({
+      assistantText: "done",
+      message: "Run sleep",
+      turnId: "persisted-turn-1"
+    }));
+
+    expect(userMessageTexts(runtime)).toEqual(["Run sleep"]);
+    expect(runtime.state.transcript?.turnOrder).toEqual(["persisted-turn-1"]);
+
+    runtime.close();
+  });
 });
+
+function userMessageTexts(runtime: ReturnType<typeof createCodexUIRuntime>): string[] {
+  return runtime.state.renderBlocks.flatMap((block) => block.type === "userMessage" ? [block.text] : []);
+}
 
 function indexThread(
   runtime: ReturnType<typeof createCodexUIRuntime>,
@@ -187,11 +293,23 @@ function readSessionFileData(
 }
 
 function rolloutJsonl(assistantText: string): string {
+  return rolloutJsonlForTurn({
+    assistantText,
+    message: "Hello",
+    turnId: "turn-1"
+  });
+}
+
+function rolloutJsonlForTurn(input: {
+  assistantText: string;
+  message: string;
+  turnId: string;
+}): string {
   return [
-    { type: "turn_context", payload: { turn_id: "turn-1" } },
-    { type: "event_msg", payload: { type: "user_message", message: "Hello", local_images: [], text_elements: [] } },
-    { type: "response_item", payload: { type: "message", role: "assistant", content: [{ type: "output_text", text: assistantText }] } },
-    { type: "event_msg", payload: { type: "task_complete", turn_id: "turn-1", duration_ms: 12 } }
+    { type: "turn_context", payload: { turn_id: input.turnId } },
+    { type: "event_msg", payload: { type: "user_message", message: input.message, local_images: [], text_elements: [] } },
+    { type: "response_item", payload: { type: "message", role: "assistant", content: [{ type: "output_text", text: input.assistantText }] } },
+    { type: "event_msg", payload: { type: "task_complete", turn_id: input.turnId, duration_ms: 12 } }
   ].map((entry) => JSON.stringify(entry)).join("\n");
 }
 

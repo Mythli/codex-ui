@@ -119,6 +119,24 @@
   width: min(1040px, 100%);
 }
 
+.fileChangeUndoStatus,
+.fileChangeUndoError {
+  border-radius: var(--coder-radius-sm);
+  font-size: var(--coder-font-size-sm);
+  line-height: 1.35;
+  padding: 8px 10px;
+}
+
+.fileChangeUndoStatus {
+  background: color-mix(in srgb, var(--coder-success) 12%, transparent);
+  color: var(--coder-success);
+}
+
+.fileChangeUndoError {
+  background: color-mix(in srgb, var(--coder-danger) 12%, transparent);
+  color: var(--coder-danger);
+}
+
 .workDivider {
   align-items: center;
   background: transparent;

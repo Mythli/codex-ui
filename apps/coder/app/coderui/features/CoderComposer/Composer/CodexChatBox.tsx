@@ -42,6 +42,7 @@ export function CodexChatBox({
   onSelectModel,
   onSelectPermissionMode,
   onSelectReasoningEffort,
+  onBeforeSubmit,
   onSubmit,
   placeholder = "Ask for follow-up changes",
   prompt,
@@ -62,6 +63,7 @@ export function CodexChatBox({
   onSelectModel: (id: string) => void;
   onSelectPermissionMode?: (value: CoderPermissionMode) => void;
   onSelectReasoningEffort: (value: CoderReasoningEffort) => void;
+  onBeforeSubmit?: () => void;
   onSubmit?: () => void;
   placeholder?: string;
   prompt: string;
@@ -179,6 +181,7 @@ export function CodexChatBox({
         onChange={(event) => onPromptChange(event.target.value)}
         placeholder={placeholder}
         rows={3}
+        suppressHydrationWarning
         value={prompt}
       />
       <input
@@ -187,6 +190,7 @@ export function CodexChatBox({
         hidden
         multiple
         onChange={(event) => void handleFilesSelected(event.currentTarget.files)}
+        suppressHydrationWarning
         type="file"
       />
       <AttachmentTray
@@ -229,6 +233,7 @@ export function CodexChatBox({
             disabled={!canSubmit}
             label="Send message"
             onClick={onSubmit}
+            onPointerDown={canSubmit ? onBeforeSubmit : undefined}
             variant="primary"
           >
             <FiArrowUp aria-hidden="true" />
@@ -238,4 +243,3 @@ export function CodexChatBox({
     </section>
   );
 }
-

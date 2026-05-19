@@ -1,4 +1,5 @@
-import { FiFile, FiX } from "react-icons/fi";
+import { FiX } from "react-icons/fi";
+import { FileTypeIcon } from "../../../common";
 import type { CoderComposerAttachment } from "../../CoderCore/types";
 import { formatAttachmentSize } from "./attachmentIO";
 import styles from "./CodexChatBox.module.css";
@@ -23,7 +24,7 @@ export function AttachmentTray({
           {attachment.kind === "image" && attachment.dataUrl ? (
             <img alt="" className={styles.attachmentThumb} src={attachment.dataUrl} />
           ) : (
-            <span className={styles.attachmentFileIcon}><FiFile aria-hidden="true" /></span>
+            <span className={styles.attachmentFileIcon}><FileTypeIcon file={attachment} /></span>
           )}
           <span className={styles.attachmentText}>
             <span className={styles.attachmentName}>{attachment.name}</span>

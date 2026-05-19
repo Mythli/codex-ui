@@ -1,0 +1,122 @@
+.diffStack {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.file {
+  background: var(--coder-bg);
+  border: 1px solid var(--coder-border);
+  border-radius: var(--coder-radius-sm);
+  min-width: 0;
+  overflow: hidden;
+}
+
+.fileHeader {
+  align-items: center;
+  background: color-mix(in srgb, var(--coder-surface) 82%, var(--coder-bg));
+  border-bottom: 1px solid var(--coder-border);
+  display: flex;
+  min-height: 36px;
+  padding: 0 12px;
+}
+
+.path {
+  color: var(--coder-text);
+  font-family: var(--coder-font-family-mono);
+  font-size: var(--coder-font-size-sm);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tableWrap {
+  --diff-background-color: var(--coder-bg);
+  --diff-text-color: var(--coder-text);
+  --diff-font-family: var(--coder-font-family-mono);
+  --diff-gutter-insert-background-color: color-mix(in srgb, var(--coder-diff-add) 14%, transparent);
+  --diff-gutter-delete-background-color: color-mix(in srgb, var(--coder-diff-remove) 16%, transparent);
+  --diff-code-insert-background-color: color-mix(in srgb, var(--coder-diff-add) 16%, transparent);
+  --diff-code-delete-background-color: color-mix(in srgb, var(--coder-diff-remove) 18%, transparent);
+  --diff-code-insert-edit-background-color: color-mix(in srgb, var(--coder-diff-add) 28%, transparent);
+  --diff-code-delete-edit-background-color: color-mix(in srgb, var(--coder-diff-remove) 30%, transparent);
+  --diff-omit-gutter-line-color: var(--coder-border-strong);
+  min-width: 0;
+  overflow: auto;
+}
+
+.tableWrap :global(.diff) {
+  background-color: var(--diff-background-color);
+  border-collapse: collapse;
+  color: var(--diff-text-color);
+  table-layout: fixed;
+  width: 100%;
+}
+
+.tableWrap :global(.diff td) {
+  padding-bottom: 0;
+  padding-top: 0;
+  vertical-align: top;
+}
+
+.tableWrap :global(.diff-line) {
+  font-family: var(--diff-font-family);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.tableWrap :global(.diff-gutter) {
+  color: var(--coder-muted);
+  cursor: default;
+  padding: 0 8px;
+  text-align: right;
+  user-select: none;
+}
+
+.tableWrap :global(.diff-gutter-col) {
+  width: 56px;
+}
+
+.tableWrap :global(.diff-code) {
+  overflow-wrap: normal;
+  padding: 0 10px;
+  white-space: pre;
+  word-break: normal;
+}
+
+.tableWrap :global(.diff-code-normal) {
+  color: var(--coder-muted);
+}
+
+.tableWrap :global(.diff-gutter-insert) {
+  background: var(--diff-gutter-insert-background-color);
+  color: var(--coder-diff-add);
+}
+
+.tableWrap :global(.diff-code-insert) {
+  background: var(--diff-code-insert-background-color);
+}
+
+.tableWrap :global(.diff-gutter-delete) {
+  background: var(--diff-gutter-delete-background-color);
+  color: var(--coder-diff-remove);
+}
+
+.tableWrap :global(.diff-code-delete) {
+  background: var(--diff-code-delete-background-color);
+}
+
+.tableWrap :global(.diff-code-insert .diff-code-edit) {
+  background: var(--diff-code-insert-edit-background-color);
+}
+
+.tableWrap :global(.diff-code-delete .diff-code-edit) {
+  background: var(--diff-code-delete-edit-background-color);
+}
+
+.empty {
+  color: var(--coder-muted);
+  font-size: var(--coder-font-size-sm);
+  padding: 12px;
+}

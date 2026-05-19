@@ -1,5 +1,6 @@
 import {
   CodexTrafficPacket,
+  codexCanonicalRequestId,
   parseRolloutJsonlTokenUsage,
   parseRolloutJsonlThreadTurns,
   type CodexProtocolResponse,
@@ -9,9 +10,9 @@ import {
 } from "../../protocol/stream/index.js";
 import { applyEvent } from "./internal/eventStrategies.js";
 import { stateFromThread } from "./internal/hydrationStrategies.js";
-import { turnStateFromProtocolTurn } from "./internal/itemProjectors.js";
+import { createTranscriptItem, turnStateFromProtocolTurn } from "./internal/itemProjectors.js";
 import { buildCodexRenderBlocks } from "./internal/renderBlocks.js";
-import { mergeHistoryState, putTurn } from "./internal/state.js";
+import { mergeHistoryState, putTurn, rekeyTurn } from "./internal/state.js";
 import type {
   CodexModelReroute,
   CodexRenderBlock,
@@ -30,7 +31,9 @@ export type CodexThreadState = {
   status: CodexThreadStatus;
   activeRequestIds: string[];
   fileReadRequestsById?: Record<string, { path: string }>;
+  threadReadRequestsById?: Record<string, { includeTurns: boolean }>;
   activeTurnId?: string;
+  isProvisionalThread?: boolean;
   error?: string;
   session?: CodexRuntimeSessionSettings;
   tokenUsage?: CodexThreadTokenUsage;
@@ -130,7 +133,11 @@ export class CodexThreadReducer {
       return state;
     }
     const strategy = trafficStrategies[traffic.kind];
-    return finalizeState(strategy ? strategy(state, traffic) : state);
+    const reduced = strategy ? strategy(state, traffic) : state;
+    if (reduced === state) {
+      return state;
+    }
+    return finalizeState(reduced, state);
   }
 
   private acceptsPacket(state: CodexThreadState, traffic: CodexProtocolTraffic, packet: CodexTrafficPacket): boolean {
@@ -197,7 +204,7 @@ function applyRequestTraffic(
   state: CodexThreadState,
   traffic: Extract<CodexProtocolTraffic, { kind: "request" }>
 ): CodexThreadState {
-  const next = rememberRequest(state, traffic.id);
+  const next = rememberRequest(state, codexCanonicalRequestId(traffic));
   return requestStrategies[traffic.method]?.(next, traffic) ?? next;
 }
 
@@ -205,11 +212,16 @@ function applyThreadReadRequest(
   state: CodexThreadState,
   traffic: RequestTraffic<"thread/read">
 ): CodexThreadState {
+  const requestId = codexCanonicalRequestId(traffic);
   return {
     ...state,
     threadId: traffic.params.threadId,
     status: "loading",
-    error: undefined
+    error: undefined,
+    threadReadRequestsById: {
+      ...state.threadReadRequestsById,
+      [requestId]: { includeTurns: traffic.params.includeTurns ?? true }
+    }
   };
 }
 
@@ -226,7 +238,7 @@ function applyThreadResumeRequest(
       modelProvider: traffic.params.modelProvider,
       serviceTier: traffic.params.serviceTier
     }),
-    status: "loading",
+    status: state.status === "running" ? "running" : "loading",
     error: undefined
   };
 }
@@ -235,7 +247,33 @@ function applyTurnStartRequest(
   state: CodexThreadState,
   traffic: RequestTraffic<"turn/start">
 ): CodexThreadState {
-  return {
+  const canonicalRequestId = codexCanonicalRequestId(traffic);
+  const startedAtMs = traffic.timestampMs ?? Date.now();
+  const turnId = `pending-turn:${canonicalRequestId}`;
+  const userItem = createTranscriptItem({
+    type: "userMessage",
+    id: `${turnId}:user`,
+    content: traffic.params.input
+  }, "live", { startedAtMs });
+  const base = state.transcript ?? {
+    threadId: traffic.params.threadId,
+    cwd: typeof traffic.params.cwd === "string" ? traffic.params.cwd : state.cwd,
+    turnOrder: [],
+    turnsById: {},
+    appliedEventKeys: {}
+  };
+  const transcript = {
+    ...putTurn(base, {
+      id: turnId,
+      status: "running",
+      source: "live",
+      startedAtMs,
+      itemOrder: [userItem.id],
+      itemsById: { [userItem.id]: userItem }
+    }),
+    activeTurnId: turnId
+  };
+  return withTranscript({
     ...state,
     threadId: traffic.params.threadId,
     cwd: typeof traffic.params.cwd === "string" ? traffic.params.cwd : state.cwd,
@@ -243,9 +281,8 @@ function applyTurnStartRequest(
       model: traffic.params.model,
       reasoningEffort: traffic.params.effort
     }),
-    status: "running",
     error: undefined
-  };
+  }, transcript, "running");
 }
 
 function applyFsReadFileRequest(
@@ -256,7 +293,7 @@ function applyFsReadFileRequest(
     ...state,
     fileReadRequestsById: {
       ...state.fileReadRequestsById,
-      [traffic.id]: { path: traffic.params.path }
+      [codexCanonicalRequestId(traffic)]: { path: traffic.params.path }
     }
   };
 }
@@ -265,7 +302,7 @@ function applyResponseTraffic(
   state: CodexThreadState,
   traffic: Extract<CodexProtocolTraffic, { kind: "response" }>
 ): CodexThreadState {
-  const next = forgetRequest(state, traffic.id);
+  const next = forgetRequest(state, codexCanonicalRequestId(traffic));
   return responseStrategies[traffic.method]?.(next, traffic) ?? next;
 }
 
@@ -273,10 +310,16 @@ function applyThreadReadResponse(
   state: CodexThreadState,
   traffic: ResponseTraffic<"thread/read">
 ): CodexThreadState {
+  const requestId = codexCanonicalRequestId(traffic);
+  const request = state.threadReadRequestsById?.[requestId];
+  const shouldReadSessionFile = request?.includeTurns === false &&
+    Boolean(traffic.response.thread.path) &&
+    traffic.response.thread.turns.length === 0;
   return withTranscript({
     ...state,
+    threadReadRequestsById: forgetThreadReadRequest(state.threadReadRequestsById, requestId),
     sessionPath: traffic.response.thread.path ?? state.sessionPath
-  }, mergeHistoryState(state.transcript, stateFromThread(traffic.response.thread)), "ready");
+  }, mergeHistoryState(state.transcript, stateFromThread(traffic.response.thread)), shouldReadSessionFile ? "loading" : "ready");
 }
 
 function applyThreadStartResponse(
@@ -307,14 +350,17 @@ function applyTurnStartResponse(
   traffic: ResponseTraffic<"turn/start">
 ): CodexThreadState {
   const turn = traffic.response.turn;
+  const requestId = codexCanonicalRequestId(traffic);
+  const pendingTurnId = `pending-turn:${requestId}`;
   const base = state.transcript ?? {
     threadId: state.threadId,
     turnOrder: [],
     turnsById: {},
     appliedEventKeys: {}
   };
+  const keyedBase = rekeyTurn(base, pendingTurnId, turn.id);
   const transcript = {
-    ...putTurn(base, turnStateFromProtocolTurn(turn, turn.id, "live", "running")),
+    ...putTurn(keyedBase, turnStateFromProtocolTurn(turn, turn.id, "live", "running")),
     activeTurnId: turn.id
   };
   return withTranscript(state, transcript, "running");
@@ -324,20 +370,27 @@ function applyFsReadFileResponse(
   state: CodexThreadState,
   traffic: ResponseTraffic<"fs/readFile">
 ): CodexThreadState {
-  const request = state.fileReadRequestsById?.[traffic.id];
-  const nextRequests = forgetFileReadRequest(state.fileReadRequestsById, traffic.id);
+  const requestId = codexCanonicalRequestId(traffic);
+  const request = state.fileReadRequestsById?.[requestId];
+  const nextRequests = forgetFileReadRequest(state.fileReadRequestsById, requestId);
   if (!request || !request.path.endsWith(".jsonl")) {
     return { ...state, fileReadRequestsById: nextRequests };
   }
 
   const jsonl = responseText(traffic.response);
   if (!jsonl) {
-    return { ...state, fileReadRequestsById: nextRequests };
+    return withTranscript({
+      ...state,
+      fileReadRequestsById: nextRequests
+    }, state.transcript, statusAfterSessionFileRead(state.status));
   }
 
   const turnsById = parseRolloutJsonlThreadTurns(jsonl);
   if (turnsById.size === 0) {
-    return { ...state, fileReadRequestsById: nextRequests };
+    return withTranscript({
+      ...state,
+      fileReadRequestsById: nextRequests
+    }, state.transcript, statusAfterSessionFileRead(state.status));
   }
 
   const base = state.transcript ?? {
@@ -362,8 +415,32 @@ function applyResponseErrorTraffic(
   state: CodexThreadState,
   traffic: Extract<CodexProtocolTraffic, { kind: "responseError" }>
 ): CodexThreadState {
+  const requestId = codexCanonicalRequestId(traffic);
+  if (traffic.method === "fs/readFile") {
+    const nextRequests = forgetFileReadRequest(state.fileReadRequestsById, requestId);
+    const next = {
+      ...forgetRequest(state, requestId),
+      fileReadRequestsById: nextRequests
+    };
+    if (state.transcript || state.renderBlocks.length > 0) {
+      return withTranscript(next, state.transcript, statusAfterSessionFileRead(state.status));
+    }
+    return {
+      ...next,
+      status: "failed",
+      error: errorMessage(traffic.error)
+    };
+  }
+  if (traffic.method === "thread/resume" && (state.transcript || state.renderBlocks.length > 0)) {
+    return withTranscript({
+      ...forgetRequest(state, requestId),
+      error: undefined
+    }, state.transcript, statusAfterSessionFileRead(state.status));
+  }
   return {
-    ...forgetRequest(state, traffic.id),
+    ...forgetRequest(state, requestId),
+    fileReadRequestsById: forgetFileReadRequest(state.fileReadRequestsById, requestId),
+    threadReadRequestsById: forgetThreadReadRequest(state.threadReadRequestsById, requestId),
     status: "failed",
     error: errorMessage(traffic.error)
   };
@@ -466,6 +543,9 @@ function rememberRequest(state: CodexThreadState, requestId: string): CodexThrea
 }
 
 function forgetRequest(state: CodexThreadState, requestId: string): CodexThreadState {
+  if (!state.activeRequestIds.includes(requestId)) {
+    return state;
+  }
   return {
     ...state,
     activeRequestIds: state.activeRequestIds.filter((id) => id !== requestId)
@@ -481,6 +561,21 @@ function forgetFileReadRequest(
   }
   const { [requestId]: _removed, ...remaining } = requests;
   return Object.keys(remaining).length > 0 ? remaining : undefined;
+}
+
+function forgetThreadReadRequest(
+  requests: CodexThreadState["threadReadRequestsById"],
+  requestId: string
+): CodexThreadState["threadReadRequestsById"] {
+  if (!requests?.[requestId]) {
+    return requests;
+  }
+  const { [requestId]: _removed, ...remaining } = requests;
+  return Object.keys(remaining).length > 0 ? remaining : undefined;
+}
+
+function statusAfterSessionFileRead(status: CodexThreadStatus): CodexThreadStatus {
+  return status === "running" ? "running" : "ready";
 }
 
 function responseText(response: CodexProtocolResponse<"fs/readFile">): string | undefined {
@@ -503,11 +598,35 @@ function responseText(response: CodexProtocolResponse<"fs/readFile">): string | 
   return new TextDecoder().decode(bytes);
 }
 
-function finalizeState(state: CodexThreadState): CodexThreadState {
-  return {
+function finalizeState(state: CodexThreadState, previous?: CodexThreadState): CodexThreadState {
+  const renderBlocks = previous && state.transcript === previous.transcript
+    ? previous.renderBlocks
+    : buildCodexRenderBlocks(state.transcript);
+  const next = {
     ...state,
-    renderBlocks: buildCodexRenderBlocks(state.transcript)
+    renderBlocks
   };
+  return previous && sameThreadState(previous, next) ? previous : next;
+}
+
+function sameThreadState(left: CodexThreadState, right: CodexThreadState): boolean {
+  return left.threadId === right.threadId &&
+    left.title === right.title &&
+    left.cwd === right.cwd &&
+    left.sessionPath === right.sessionPath &&
+    left.status === right.status &&
+    left.activeRequestIds === right.activeRequestIds &&
+    left.fileReadRequestsById === right.fileReadRequestsById &&
+    left.threadReadRequestsById === right.threadReadRequestsById &&
+    left.activeTurnId === right.activeTurnId &&
+    left.isProvisionalThread === right.isProvisionalThread &&
+    left.error === right.error &&
+    left.session === right.session &&
+    left.tokenUsage === right.tokenUsage &&
+    left.modelReroute === right.modelReroute &&
+    left.modelVerification === right.modelVerification &&
+    left.transcript === right.transcript &&
+    left.renderBlocks === right.renderBlocks;
 }
 
 function eventStatus(method: string, current: CodexThreadStatus): CodexThreadStatus {

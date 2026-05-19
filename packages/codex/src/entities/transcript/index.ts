@@ -1,4 +1,8 @@
 export {
+  buildFileChangePatch,
+  type CodexFilePatchChange
+} from "./fileChangePatch.js";
+export {
   CodexThreadReducer,
   type CodexThreadReducerOptions,
   type CodexThreadState,
@@ -27,6 +31,7 @@ export type {
   CodexThreadTokenUsage,
   CodexTokenUsageBreakdown,
   CodexTranscript,
+  CodexTranscriptAttachment,
   CodexTranscriptFile,
   CodexTranscriptImage,
   CodexTranscriptItem,

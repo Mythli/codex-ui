@@ -7,11 +7,12 @@ import type {
 } from "@taylordb/codex/protocol";
 import {
   CodexTrafficPacket,
+  codexCanonicalRequestId,
   parseCodexProtocolErrorResponseTraffic,
   parseCodexProtocolRequestTraffic,
   parseCodexProtocolResponseTraffic
 } from "@taylordb/codex/protocol";
-import type { CodexTransport } from "@taylordb/codex/server";
+import type { CodexTransport, CodexTransportRequestOptions } from "@taylordb/codex/server";
 import type {
   CodexMiddlewareContext,
   CodexMiddlewareHandledResponse,
@@ -60,19 +61,23 @@ class CodexMiddlewareTransport implements CodexTransport {
     readonly middleware: readonly CodexProtocolMiddleware[]
   ) {}
 
-  async request<M extends CodexRequestMethod>(method: M, params: CodexRequestParams<M>): Promise<CodexProtocolResponse<M>> {
+  async request<M extends CodexRequestMethod>(
+    method: M,
+    params: CodexRequestParams<M>,
+    options: CodexTransportRequestOptions = {}
+  ): Promise<CodexProtocolResponse<M>> {
     const cwd = requestCwd(params) ?? this.options.cwd;
     const context = this.context(cwd);
     const middlewareResult = await this.applyRequestMiddleware({ method, params }, context);
 
     if (isHandledResponse(middlewareResult)) {
       this.rememberCwd(middlewareResult.request.params);
-      return this.emitHandledResponse(middlewareResult, context);
+      return this.emitHandledResponse(middlewareResult, context, options);
     }
 
     const nextRequest = middlewareResult ?? { method, params };
     this.rememberCwd(nextRequest.params);
-    const response = await this.transport.request(nextRequest.method, nextRequest.params);
+    const response = await this.transport.request(nextRequest.method, nextRequest.params, options);
     return this.applyResponseMiddleware(
       nextRequest,
       response,
@@ -189,13 +194,14 @@ class CodexMiddlewareTransport implements CodexTransport {
       }
       const request = result ?? { method: traffic.method, params: traffic.params };
       this.rememberCwd(request.params);
-      this.requestParamsById.set(traffic.id, request);
+      this.requestParamsById.set(codexCanonicalRequestId(traffic), request);
       return this.applyWholeTrafficMiddleware({ ...traffic, params: request.params } as CodexProtocolTraffic, context);
     }
 
     if (traffic.kind === "response") {
-      const request = this.requestParamsById.get(traffic.id);
-      this.requestParamsById.delete(traffic.id);
+      const requestId = codexCanonicalRequestId(traffic);
+      const request = this.requestParamsById.get(requestId);
+      this.requestParamsById.delete(requestId);
       const response = request?.method === traffic.method
         ? await this.applyResponseMiddleware(request, traffic.response, context)
         : traffic.response;
@@ -203,7 +209,7 @@ class CodexMiddlewareTransport implements CodexTransport {
     }
 
     if (traffic.kind === "responseError") {
-      this.requestParamsById.delete(traffic.id);
+      this.requestParamsById.delete(codexCanonicalRequestId(traffic));
     }
 
     return this.applyWholeTrafficMiddleware(traffic, context);
@@ -222,9 +228,11 @@ class CodexMiddlewareTransport implements CodexTransport {
 
   private async emitHandledResponse<M extends CodexRequestMethod>(
     handled: CodexMiddlewareHandledResponse<M>,
-    context: CodexMiddlewareContext
+    context: CodexMiddlewareContext,
+    options: CodexTransportRequestOptions = {}
   ): Promise<CodexProtocolResponse<M>> {
     const requestTraffic = parseCodexProtocolRequestTraffic(handled.request.method, handled.request.params, {
+      metadata: options.metadata,
       timestampMs: Date.now()
     });
     await this.emitLocalTraffic(requestTraffic, context);
@@ -232,12 +240,14 @@ class CodexMiddlewareTransport implements CodexTransport {
       const response = await this.applyResponseMiddleware(handled.request, handled.response, context);
       await this.emitLocalTraffic(parseCodexProtocolResponseTraffic(handled.request.method, response, {
         id: requestTraffic.id,
+        metadata: options.metadata,
         timestampMs: Date.now()
       }), context);
       return response;
     } catch (error) {
       await this.emitLocalTraffic(parseCodexProtocolErrorResponseTraffic(handled.request.method, serializeError(error), {
         id: requestTraffic.id,
+        metadata: options.metadata,
         timestampMs: Date.now()
       }), context);
       throw error;

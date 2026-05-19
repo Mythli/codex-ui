@@ -92,6 +92,13 @@ export async function replaceResponseAssets<M extends CodexRequestMethod>(
     } as CodexProtocolResponse<M>;
   }
 
+  if (method === "turn/start") {
+    const turnResponse = response as { turn?: CodexParsedTurn };
+    return turnResponse.turn
+      ? { ...turnResponse, turn: normalizeTurn(turnResponse.turn, context) } as CodexProtocolResponse<M>
+      : response;
+  }
+
   return response;
 }
 

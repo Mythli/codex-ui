@@ -45,11 +45,22 @@ export type CodexRequestParams<M extends CodexRequestMethod> =
 export type CodexProtocolResponse<M extends CodexRequestMethod> =
   M extends keyof CodexResponseByMethod ? CodexResponseByMethod[M] : CodexUnknownResponse;
 
+export type CodexProtocolMetadata = {
+  clientRequestId?: string;
+} & RecordValue;
+
+export type CodexProtocolTrafficContext = {
+  id?: string | number;
+  metadata?: CodexProtocolMetadata;
+  timestampMs?: number;
+};
+
 export type CodexProtocolRequestTraffic<M extends CodexRequestMethod = CodexRequestMethod> = {
   kind: "request";
   id: string;
   method: M;
   params: CodexRequestParams<M>;
+  metadata?: CodexProtocolMetadata;
   timestampMs?: number;
 };
 
@@ -58,6 +69,7 @@ export type CodexProtocolResponseTraffic<M extends CodexRequestMethod = CodexReq
   id: string;
   method: M;
   response: CodexProtocolResponse<M>;
+  metadata?: CodexProtocolMetadata;
   timestampMs?: number;
 };
 
@@ -66,6 +78,7 @@ export type CodexProtocolErrorResponseTraffic<M extends CodexRequestMethod = Cod
   id: string;
   method: M;
   error: RecordValue;
+  metadata?: CodexProtocolMetadata;
   timestampMs?: number;
 };
 
@@ -80,6 +93,7 @@ export type CodexProtocolServerRequestTraffic = {
   id: string;
   method: string;
   params: RecordValue;
+  metadata?: CodexProtocolMetadata;
   timestampMs?: number;
 };
 
@@ -102,6 +116,7 @@ const codexProtocolRequestTrafficInputSchema = z.object({
   id: codexRequestIdSchema,
   method: z.string(),
   params: z.unknown(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
   timestampMs: z.number().optional()
 }).passthrough();
 
@@ -110,6 +125,7 @@ const codexProtocolResponseTrafficInputSchema = z.object({
   id: codexRequestIdSchema,
   method: z.string(),
   response: z.unknown(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
   timestampMs: z.number().optional()
 }).passthrough();
 
@@ -118,6 +134,7 @@ const codexProtocolErrorResponseTrafficInputSchema = z.object({
   id: codexRequestIdSchema,
   method: z.string(),
   error: z.unknown(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
   timestampMs: z.number().optional()
 }).passthrough();
 
@@ -132,6 +149,7 @@ const codexProtocolServerRequestTrafficInputSchema = z.object({
   id: codexRequestIdSchema,
   method: z.string(),
   params: z.unknown().optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
   timestampMs: z.number().optional()
 }).passthrough();
 
@@ -144,18 +162,21 @@ const codexProtocolDiagnosticTrafficInputSchema = z.object({
 export const codexProtocolRequestTrafficSchema = codexProtocolRequestTrafficInputSchema
   .transform((traffic) => parseCodexProtocolRequestTraffic(traffic.method, traffic.params, {
     id: traffic.id,
+    metadata: parseCodexProtocolMetadata(traffic.metadata),
     timestampMs: traffic.timestampMs
   })) as z.ZodType<CodexProtocolRequestTraffic>;
 
 export const codexProtocolResponseTrafficSchema = codexProtocolResponseTrafficInputSchema
   .transform((traffic) => parseCodexProtocolResponseTraffic(traffic.method, traffic.response, {
     id: traffic.id,
+    metadata: parseCodexProtocolMetadata(traffic.metadata),
     timestampMs: traffic.timestampMs
   })) as z.ZodType<CodexProtocolResponseTraffic>;
 
 export const codexProtocolErrorResponseTrafficSchema = codexProtocolErrorResponseTrafficInputSchema
   .transform((traffic) => parseCodexProtocolErrorResponseTraffic(traffic.method, traffic.error, {
     id: traffic.id,
+    metadata: parseCodexProtocolMetadata(traffic.metadata),
     timestampMs: traffic.timestampMs
   })) as z.ZodType<CodexProtocolErrorResponseTraffic>;
 
@@ -211,13 +232,14 @@ export function parseCodexProtocolTraffic(value: unknown): CodexProtocolTraffic 
 export function parseCodexProtocolRequestTraffic<M extends CodexRequestMethod>(
   method: M,
   params: unknown,
-  context: { id?: string | number; timestampMs?: number } = {}
+  context: CodexProtocolTrafficContext = {}
 ): CodexProtocolRequestTraffic<M> {
   return {
     kind: "request",
     id: String(context.id ?? stableTrafficId("request", method, params)),
     method,
     params: parseCodexRequestParams(method, params),
+    metadata: context.metadata,
     timestampMs: context.timestampMs
   };
 }
@@ -225,13 +247,14 @@ export function parseCodexProtocolRequestTraffic<M extends CodexRequestMethod>(
 export function parseCodexProtocolResponseTraffic<M extends CodexRequestMethod>(
   method: M,
   value: unknown,
-  context: { id?: string | number; timestampMs?: number } = {}
+  context: CodexProtocolTrafficContext = {}
 ): CodexProtocolResponseTraffic<M> {
   return {
     kind: "response",
     id: String(context.id ?? stableTrafficId("response", method, value)),
     method,
     response: parseCodexResponse(method, value),
+    metadata: context.metadata,
     timestampMs: context.timestampMs
   };
 }
@@ -239,13 +262,14 @@ export function parseCodexProtocolResponseTraffic<M extends CodexRequestMethod>(
 export function parseCodexProtocolErrorResponseTraffic<M extends CodexRequestMethod>(
   method: M,
   value: unknown,
-  context: { id?: string | number; timestampMs?: number } = {}
+  context: CodexProtocolTrafficContext = {}
 ): CodexProtocolErrorResponseTraffic<M> {
   return {
     kind: "responseError",
     id: String(context.id ?? stableTrafficId("responseError", method, value)),
     method,
     error: asRecord(value),
+    metadata: context.metadata,
     timestampMs: context.timestampMs
   };
 }
@@ -283,6 +307,7 @@ export function parseCodexServerRequest(value: unknown): CodexProtocolServerRequ
     id: codexRequestIdSchema,
     method: z.string(),
     params: z.unknown().optional(),
+    metadata: z.record(z.string(), z.unknown()).optional(),
     timestampMs: z.number().optional()
   }).passthrough().safeParse(value);
   if (!parsed.success) {
@@ -298,6 +323,26 @@ export function parseCodexServerRequest(value: unknown): CodexProtocolServerRequ
     id: parsed.data.id,
     method: parsed.data.method,
     params: asRecord(parsed.data.params),
+    metadata: parseCodexProtocolMetadata(parsed.data.metadata),
     timestampMs: parsed.data.timestampMs
   };
+}
+
+export function codexCanonicalRequestId(
+  traffic: Pick<
+    CodexProtocolRequestTraffic | CodexProtocolResponseTraffic | CodexProtocolErrorResponseTraffic | CodexProtocolServerRequestTraffic,
+    "id" | "metadata"
+  >
+): string {
+  return typeof traffic.metadata?.clientRequestId === "string" && traffic.metadata.clientRequestId.length > 0
+    ? traffic.metadata.clientRequestId
+    : traffic.id;
+}
+
+function parseCodexProtocolMetadata(value: unknown): CodexProtocolMetadata | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+  const metadata = asRecord(value);
+  return Object.keys(metadata).length > 0 ? metadata as CodexProtocolMetadata : undefined;
 }

@@ -1,5 +1,6 @@
 import { io, type Socket } from "socket.io-client";
 import type { CodexTransport } from "../core/transport/CodexTransport.js";
+import type { CodexTransportRequestOptions } from "../core/transport/CodexTransport.js";
 import {
   type CodexProtocolResponse,
   type CodexProtocolTraffic,
@@ -55,9 +56,13 @@ export class CodexSocketIoTransport implements CodexTransport {
     });
   }
 
-  async request<M extends CodexRequestMethod>(method: M, params: CodexRequestParams<M>): Promise<CodexProtocolResponse<M>> {
+  async request<M extends CodexRequestMethod>(
+    method: M,
+    params: CodexRequestParams<M>,
+    options: CodexTransportRequestOptions = {}
+  ): Promise<CodexProtocolResponse<M>> {
     await this.initialize();
-    return this.sendRequest(method, params);
+    return this.sendRequest(method, params, options);
   }
 
   async notify<M extends CodexRequestMethod>(method: M, params?: CodexRequestParams<M>): Promise<void> {
@@ -107,9 +112,13 @@ export class CodexSocketIoTransport implements CodexTransport {
     });
   }
 
-  private sendRequest<M extends CodexRequestMethod>(method: M, params: CodexRequestParams<M>): Promise<CodexProtocolResponse<M>> {
+  private sendRequest<M extends CodexRequestMethod>(
+    method: M,
+    params: CodexRequestParams<M>,
+    options: CodexTransportRequestOptions = {}
+  ): Promise<CodexProtocolResponse<M>> {
     return new Promise<CodexProtocolResponse<M>>((resolve, reject) => {
-      this.socket.emit("request", { method, params }, (response: SocketIoResponse) => {
+      this.socket.emit("request", { method, params, metadata: options.metadata }, (response: SocketIoResponse) => {
         if (response.ok) {
           resolve(response.result as CodexProtocolResponse<M>);
         } else {

@@ -79,8 +79,13 @@ export type CodexTranscriptFile = {
   path: string;
   action?: string;
   additions?: number;
+  content?: string;
   deletions?: number;
   diff?: string;
+  kind?: {
+    type?: string;
+    move_path?: string | null;
+  };
   asset?: CodexAssetRef;
 };
 
@@ -92,6 +97,15 @@ export type CodexTranscriptImage = {
   url?: string;
   dataUrl?: string;
   alt?: string;
+};
+
+export type CodexTranscriptAttachment = {
+  id: string;
+  kind: "file";
+  name: string;
+  mimeType?: string;
+  path?: string;
+  sizeLabel?: string;
 };
 
 export type CodexTranscriptCommandAction = {
@@ -123,6 +137,7 @@ export type CodexTranscriptItem = {
   arguments?: unknown;
   result?: unknown;
   error?: unknown;
+  attachments?: CodexTranscriptAttachment[];
   files?: CodexTranscriptFile[];
   images?: CodexTranscriptImage[];
   payload?: unknown;
@@ -142,6 +157,7 @@ export type CodexUserMessageBlock = {
   turnId: string;
   cwd?: string;
   text: string;
+  attachments: CodexTranscriptAttachment[];
   images: CodexTranscriptImage[];
 };
 

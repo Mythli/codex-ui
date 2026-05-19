@@ -1,14 +1,14 @@
 import { Server } from "socket.io";
 import type { Plugin, PreviewServer, ViteDevServer } from "vite";
 import {
-  createCodexAssetHttpHandler,
-  createCodexAssetRegistry
+  codexAssetRef,
+  createCodexAssetHttpHandler
 } from "./middlewares/assets/index.js";
 import { AppCodexSessionRegistry, attachAppCodexNamespace } from "./codex-socket.js";
 import { attachFixturePlayback } from "./fixture-playback/index.js";
-import { attachGitObserverNamespace } from "../../../packages/git-observer/src/server";
+import { sharedCodexAssets } from "./codex-backend.js";
 
-const codexAssets = createCodexAssetRegistry();
+const codexAssets = sharedCodexAssets;
 
 export function appSocketPlugin(path = "/app-socket"): Plugin {
   return {
@@ -39,12 +39,10 @@ function installAppSocketBridge(server: ViteDevServer, path: string) {
   const sessions = new AppCodexSessionRegistry();
   const codexServer = attachAppCodexNamespace(io.of("/codex"), { assets: codexAssets, sessions });
   const fixturePlayback = attachFixturePlayback({ io, sessions });
-  const gitServer = attachGitObserverNamespace(io.of("/git"));
 
   server.httpServer.once("close", () => {
     fixturePlayback.close();
     codexServer.close();
-    void gitServer.close();
     io.close();
   });
 }
@@ -64,7 +62,7 @@ function installCodexAssetRoutes(server: ViteDevServer | PreviewServer) {
       const originalName = typeof request.headers["x-file-name"] === "string" ? request.headers["x-file-name"] : undefined;
       const staged = codexAssets.stageBytesAsFile(Buffer.concat(chunks), { mimeType, originalName });
       const input = mimeType.startsWith("image/")
-        ? { type: "localImage", path: staged.path }
+        ? { type: "localImage", path: staged.path, asset: codexAssetRef(staged.asset) }
         : undefined;
       response.setHeader("Content-Type", "application/json; charset=utf-8");
       response.end(JSON.stringify({

@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import type { GitCommit, GitSnapshot } from "@taylordb/git-observer";
 import type { CoderProjectItem } from "../../../CoderCore/types";
 import type { CoderShellViewMode } from "./ViewModeSwitcher";
 import styles from "./WorkspaceTopBar.module.css";
@@ -11,21 +10,11 @@ export function WorkspaceTopBar({
   right,
   project
 }: {
-  commitHistoryError?: string;
-  commits?: GitCommit[];
-  currentHead?: GitSnapshot["head"];
-  hasMoreCommits?: boolean;
-  isLoadingCommits?: boolean;
-  isLoadingMoreCommits?: boolean;
-  onPublish?: () => void;
-  onLoadMoreCommits?: () => void;
-  onSelectCommit?: (commit: GitCommit) => void | Promise<void>;
   left?: ReactNode;
   center?: ReactNode;
   mode?: CoderShellViewMode;
   right?: ReactNode;
   project: CoderProjectItem;
-  status?: string;
 }) {
   const topbarClassName = [
     styles.topbar,

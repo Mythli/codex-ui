@@ -37,3 +37,4 @@ apps/coder/e2e/click/test-results/
 # JetBrains / PhpStorm
 .idea/
 !.idea/.gitignore
+logs

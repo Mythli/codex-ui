@@ -1,3 +1,5 @@
+import type { CodexRenderBlock } from "@taylordb/codex";
+
 export type CoderChatItem = {
   id: string;
   title: string;
@@ -30,7 +32,17 @@ export type CoderModelItem = {
 export type CoderReasoningEffort = "none" | "minimal" | "low" | "medium" | "high" | "xhigh";
 export type CoderPermissionMode = "default" | "auto-review" | "full-access";
 
-export type CoderComposerAttachmentInput = { type: "localImage"; path: string };
+export type CoderComposerAttachmentInput = {
+  type: "localImage";
+  path: string;
+  asset?: {
+    url: string;
+    kind: "file" | "bytes";
+    mimeType?: string;
+    originalPath?: string;
+    sizeBytes?: number;
+  };
+};
 
 export type CoderComposerAttachment = {
   id: string;
@@ -91,6 +103,9 @@ export type CoderSelection =
   | { kind: "thread"; threadId: string; projectId: string }
   | { kind: "draft"; draftId: string; projectId: string };
 
-export type CoderState = {
-  selection: CoderSelection;
-};
+export type ChatPaneState =
+  | { kind: "home" }
+  | { kind: "loading"; chatId: string; title?: string }
+  | { kind: "ready"; chatId: string; blocks: readonly CodexRenderBlock[] }
+  | { kind: "empty"; chatId: string; title?: string }
+  | { kind: "error"; chatId?: string; message: string };

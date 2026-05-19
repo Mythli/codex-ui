@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { CodexFileChangeEntry } from "@taylordb/codex";
-import { FileChangeCardView } from "@taylordb/coderui";
+import { FileChangeCardView, FileReviewSidebar } from "@taylordb/coderui";
 import styles from "../../Transcript/Transcript.module.css";
 
 export function FileChangeCard({
@@ -11,8 +11,15 @@ export function FileChangeCard({
   entry: CodexFileChangeEntry;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
   const visibleFiles = expanded ? entry.files : entry.files.slice(0, 3);
   const hiddenCount = Math.max(0, entry.files.length - visibleFiles.length);
+  const reviewFiles = entry.files.map((file) => ({
+    additions: file.additions,
+    deletions: file.deletions,
+    diff: file.diff,
+    path: displayPath(file.path, cwd)
+  }));
 
   return (
     <section className={styles.message_fileChanges}>
@@ -25,6 +32,7 @@ export function FileChangeCard({
           diff: file.diff,
           path: displayPath(file.path, cwd)
         }))}
+        onReview={() => setReviewOpen(true)}
         title={entry.title}
       />
       {hiddenCount > 0 ? (
@@ -32,6 +40,14 @@ export function FileChangeCard({
           Show {hiddenCount} more {hiddenCount === 1 ? "file" : "files"}
         </button>
       ) : null}
+      <FileReviewSidebar
+        additions={entry.additions}
+        deletions={entry.deletions}
+        files={reviewFiles}
+        onClose={() => setReviewOpen(false)}
+        open={reviewOpen}
+        title={entry.title}
+      />
     </section>
   );
 }

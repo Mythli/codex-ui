@@ -1,3 +1,4 @@
+import { codexCanonicalRequestId } from "./traffic.js";
 import type {
   CodexProtocolEventTraffic,
   CodexProtocolErrorResponseTraffic,
@@ -104,7 +105,7 @@ function requestPacketMetadata(
   const params = asRecord(traffic.params);
   return {
     method: traffic.method,
-    requestId: traffic.id,
+    requestId: codexCanonicalRequestId(traffic),
     threadId: stringValue(params.threadId),
     turnId: stringValue(params.turnId),
     cwd: stringValue(params.cwd),
@@ -120,7 +121,7 @@ function responsePacketMetadata(
   const turn = asRecord(response.turn);
   return {
     method: traffic.method,
-    requestId: traffic.id,
+    requestId: codexCanonicalRequestId(traffic),
     threadId: stringValue(thread.id) ?? stringValue(turn.threadId),
     turnId: stringValue(turn.id),
     cwd: stringValue(thread.cwd),
@@ -133,7 +134,7 @@ function responseErrorPacketMetadata(
 ): CodexTrafficPacketMetadata {
   return {
     method: traffic.method,
-    requestId: traffic.id,
+    requestId: codexCanonicalRequestId(traffic),
     timestampMs: traffic.timestampMs
   };
 }
@@ -159,7 +160,7 @@ function serverRequestPacketMetadata(
   const params = asRecord(traffic.params);
   return {
     method: traffic.method,
-    requestId: traffic.id,
+    requestId: codexCanonicalRequestId(traffic),
     threadId: stringValue(params.threadId),
     turnId: stringValue(params.turnId),
     cwd: stringValue(params.cwd),

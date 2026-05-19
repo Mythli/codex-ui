@@ -5,7 +5,6 @@ import { defineConfig } from "vite";
 import { appSocketPlugin } from "./api/app-socket";
 
 const codexRoot = path.resolve(__dirname, "../../packages/codex/src");
-const gitObserverRoot = path.resolve(__dirname, "../../packages/git-observer/src");
 
 export default defineConfig({
   resolve: {
@@ -19,20 +18,12 @@ export default defineConfig({
         replacement: path.resolve(codexRoot, "server.ts")
       },
       {
+        find: /^@taylordb\/codex\/protocol$/,
+        replacement: path.resolve(codexRoot, "protocol.ts")
+      },
+      {
         find: /^@taylordb\/codex$/,
         replacement: path.resolve(codexRoot, "index.ts")
-      },
-      {
-        find: /^@taylordb\/git-observer\/browser$/,
-        replacement: path.resolve(gitObserverRoot, "browser.ts")
-      },
-      {
-        find: /^@taylordb\/git-observer\/server$/,
-        replacement: path.resolve(gitObserverRoot, "server.ts")
-      },
-      {
-        find: /^@taylordb\/git-observer$/,
-        replacement: path.resolve(gitObserverRoot, "index.ts")
       },
       {
         find: "@taylordb/coderui/style.css",

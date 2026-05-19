@@ -33,9 +33,10 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsup",
+    "build": "tsdown",
     "dump:e2e": "tsx scripts/dump-e2e-scenario.ts",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsgo --noEmit",
+    "typecheck:tsc": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
     "test:e2e:capture": "pnpm run dump:e2e"
   },
@@ -47,7 +48,6 @@
   },
   "devDependencies": {
     "@types/node": "^25.0.1",
-    "tsup": "^8.0.2",
     "tsx": "^4.22.0",
     "typescript": "^6.0.2",
     "vitest": "^3.2.4"

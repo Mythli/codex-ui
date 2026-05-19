@@ -83,6 +83,33 @@ export function putTurn(state: CodexTranscriptState, incoming: CodexTranscriptTu
   });
 }
 
+export function rekeyTurn(
+  state: CodexTranscriptState,
+  fromTurnId: string,
+  toTurnId: string
+): CodexTranscriptState {
+  if (fromTurnId === toTurnId || !state.turnsById[fromTurnId]) {
+    return state;
+  }
+
+  return produce(state, (draft) => {
+    const source = draft.turnsById[fromTurnId];
+    if (!source) {
+      return;
+    }
+
+    const target = draft.turnsById[toTurnId];
+    const movedSource = { ...source, id: toTurnId };
+    draft.turnsById[toTurnId] = target ? mergeTurn(movedSource, target) : movedSource;
+    delete draft.turnsById[fromTurnId];
+    draft.turnOrder = unique(draft.turnOrder.map((turnId) => turnId === fromTurnId ? toTurnId : turnId))
+      .filter((turnId) => Boolean(draft.turnsById[turnId]));
+    if (draft.activeTurnId === fromTurnId) {
+      draft.activeTurnId = toTurnId;
+    }
+  });
+}
+
 export function putItem(
   state: CodexTranscriptState,
   turnId: string,
@@ -163,11 +190,70 @@ function selectTurn(turn: CodexTranscriptTurnState): CodexTranscriptTurn {
 }
 
 function putTurnInDraft(state: CodexTranscriptState, incoming: CodexTranscriptTurnState): void {
-  const existing = state.turnsById[incoming.id];
+  let existing = state.turnsById[incoming.id];
+  if (!existing && !incoming.id.startsWith("pending-turn:")) {
+    const equivalentTurnId = pendingTurnIdForIncoming(state, incoming) ?? liveTurnIdForIncomingHistory(state, incoming);
+    if (equivalentTurnId) {
+      existing = state.turnsById[equivalentTurnId];
+      delete state.turnsById[equivalentTurnId];
+      state.turnOrder = state.turnOrder.map((turnId) => turnId === equivalentTurnId ? incoming.id : turnId);
+      if (state.activeTurnId === equivalentTurnId) {
+        state.activeTurnId = incoming.id;
+      }
+    }
+  }
   state.turnsById[incoming.id] = existing ? mergeTurn(existing, incoming) : incoming;
   if (!state.turnOrder.includes(incoming.id)) {
     state.turnOrder.push(incoming.id);
   }
+}
+
+function pendingTurnIdForIncoming(
+  state: CodexTranscriptState,
+  incoming: CodexTranscriptTurnState
+): string | undefined {
+  if (incoming.itemOrder.length > 0 || incoming.source !== "live" || incoming.status !== "running") {
+    return undefined;
+  }
+  const activeTurnId = state.activeTurnId;
+  if (activeTurnId?.startsWith("pending-turn:") && state.turnsById[activeTurnId]) {
+    return activeTurnId;
+  }
+  const pendingTurnIds = state.turnOrder.filter((turnId) => turnId.startsWith("pending-turn:") && state.turnsById[turnId]);
+  return pendingTurnIds.length === 1 ? pendingTurnIds[0] : undefined;
+}
+
+function liveTurnIdForIncomingHistory(
+  state: CodexTranscriptState,
+  incoming: CodexTranscriptTurnState
+): string | undefined {
+  if (incoming.source !== "history" || incoming.status !== "completed" || incoming.itemOrder.length === 0) {
+    return undefined;
+  }
+  return state.turnOrder.find((turnId) => {
+    const existing = state.turnsById[turnId];
+    return existing &&
+      existing.source !== "history" &&
+      existing.status !== "completed" &&
+      turnsHaveEquivalentUserMessage(existing, incoming);
+  });
+}
+
+function turnsHaveEquivalentUserMessage(
+  existing: CodexTranscriptTurnState,
+  incoming: CodexTranscriptTurnState
+): boolean {
+  const incomingUsers = incoming.itemOrder
+    .map((itemId) => incoming.itemsById[itemId])
+    .filter((item): item is CodexTranscriptItem => item?.type === "userMessage");
+  if (incomingUsers.length === 0) {
+    return false;
+  }
+  return existing.itemOrder.some((itemId) => {
+    const existingItem = existing.itemsById[itemId];
+    return existingItem?.type === "userMessage" &&
+      incomingUsers.some((incomingItem) => areEquivalentItems(existingItem, incomingItem));
+  });
 }
 
 function mergeTurn(existing: CodexTranscriptTurnState, incoming: CodexTranscriptTurnState): CodexTranscriptTurnState {
@@ -209,7 +295,7 @@ function mergeTurn(existing: CodexTranscriptTurnState, incoming: CodexTranscript
     id: incoming.id,
     status: mergeTurnStatus(existing.status, incoming.status),
     source: existing.source === incoming.source ? existing.source : "merged",
-    startedAtMs: incoming.startedAtMs ?? existing.startedAtMs,
+    startedAtMs: earliestMs(existing.startedAtMs, incoming.startedAtMs),
     completedAtMs: incoming.completedAtMs ?? existing.completedAtMs,
     durationMs: incoming.durationMs ?? existing.durationMs,
     filesChanged: incoming.filesChanged ?? existing.filesChanged,
@@ -240,7 +326,8 @@ function areEquivalentItems(existing: CodexTranscriptItem, incoming: CodexTransc
     return false;
   }
   if (existing.type === "userMessage") {
-    return normalizeText(existing.text) === normalizeText(incoming.text);
+    return normalizeText(existing.text) === normalizeText(incoming.text) &&
+      itemImagePaths(existing).join("\n") === itemImagePaths(incoming).join("\n");
   }
   if (existing.type === "agentMessage") {
     return normalizeText(existing.text) === normalizeText(incoming.text) &&
@@ -260,10 +347,16 @@ function areEquivalentItems(existing: CodexTranscriptItem, incoming: CodexTransc
 }
 
 function upsertItemInDraft(turn: CodexTranscriptTurnState, incoming: CodexTranscriptItem): void {
-  const existing = turn.itemsById[incoming.id];
-  turn.itemsById[incoming.id] = existing ? mergeItem(existing, incoming, incoming.id) : incoming;
-  if (!turn.itemOrder.includes(incoming.id)) {
-    turn.itemOrder.push(incoming.id);
+  const existingItemId = equivalentExistingItemId(turn, incoming, new Set());
+  const existing = existingItemId ? turn.itemsById[existingItemId] : undefined;
+  const item = existing ? mergeItem(existing, incoming, incoming.id) : incoming;
+  if (existingItemId && existingItemId !== item.id) {
+    delete turn.itemsById[existingItemId];
+    turn.itemOrder = turn.itemOrder.map((itemId) => itemId === existingItemId ? item.id : itemId);
+  }
+  turn.itemsById[item.id] = item;
+  if (!turn.itemOrder.includes(item.id)) {
+    turn.itemOrder.push(item.id);
   }
 }
 
@@ -326,6 +419,12 @@ function itemFilePaths(item: CodexTranscriptItem): string[] {
 
 function itemImagePaths(item: CodexTranscriptItem): string[] {
   return (item.images ?? []).map((image) => image.path ?? image.url ?? image.dataUrl ?? image.id).sort();
+}
+
+function earliestMs(left: number | undefined, right: number | undefined): number | undefined {
+  if (left === undefined) return right;
+  if (right === undefined) return left;
+  return Math.min(left, right);
 }
 
 function unique<T>(items: T[]): T[] {

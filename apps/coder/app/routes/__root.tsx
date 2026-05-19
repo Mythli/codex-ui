@@ -1,9 +1,8 @@
 import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
 import { useState } from "react";
 import { createQueryClient } from "../core/queryClient";
-import { CoderStoreBinder } from "../coderui/features/CoderCore";
 import { CoderUIProvider } from "../coderui/system";
-import { createCodexAdapter, createGitClient } from "../features/Coder/adapters/codexAdapter";
+import { CoderReduxProvider } from "../features/Coder/store/provider";
 import { FixturePlaybackConnector } from "../features/fixture-playback";
 import "@taylordb/coderui/style.css";
 
@@ -18,16 +17,14 @@ type RootSearch = Record<string, unknown>;
 
 function RootComponent() {
   const [queryClient] = useState(() => createQueryClient());
-  const [coderAdapter] = useState(() => createCodexAdapter());
-  const [gitClient] = useState(() => createGitClient());
   const content = (
     <CoderUIProvider
-      adapters={{ coder: coderAdapter, git: gitClient }}
       queryClient={queryClient}
     >
-      <CoderStoreBinder />
-      <FixturePlaybackConnector />
-      <Outlet />
+      <CoderReduxProvider>
+        <FixturePlaybackConnector />
+        <Outlet />
+      </CoderReduxProvider>
     </CoderUIProvider>
   );
 

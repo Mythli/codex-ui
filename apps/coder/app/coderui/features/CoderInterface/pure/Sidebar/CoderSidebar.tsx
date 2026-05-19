@@ -3,6 +3,7 @@ import { PromptHome } from "../../PromptHome";
 import { CodexChatView } from "../../../CoderConversation/Transcript";
 import { Composer } from "../../../CoderComposer";
 import type {
+  ChatPaneState,
   CoderComposerAttachment,
   CoderContextUsage,
   CoderModelItem,
@@ -10,7 +11,6 @@ import type {
   CoderProjectItem,
   CoderReasoningEffort
 } from "../../../CoderCore/types";
-import type { ChatPaneState } from "../../../CoderCore/store/derivedState";
 import { SidebarHeader } from "./SidebarHeader";
 import styles from "./CoderSidebar.module.css";
 
@@ -28,6 +28,7 @@ export function CoderSidebar({
   onSelectModel,
   onSelectPermissionMode,
   onSelectReasoningEffort,
+  onBeforeSubmitPrompt,
   onSubmitPrompt,
   onToggleSwitcher,
   project,
@@ -52,6 +53,7 @@ export function CoderSidebar({
   onSelectModel: (id: string) => void;
   onSelectPermissionMode?: (value: CoderPermissionMode) => void;
   onSelectReasoningEffort: (value: CoderReasoningEffort) => void;
+  onBeforeSubmitPrompt?: () => void;
   onSubmitPrompt?: () => void;
   onToggleSwitcher: () => void;
   project: CoderProjectItem;
@@ -92,6 +94,7 @@ export function CoderSidebar({
         onSelectModel={onSelectModel}
         onSelectPermissionMode={onSelectPermissionMode}
         onSelectReasoningEffort={onSelectReasoningEffort}
+        onBeforeSubmitPrompt={onBeforeSubmitPrompt}
         onSubmitPrompt={onSubmitPrompt}
         prompt={prompt}
         selectedPermissionMode={selectedPermissionMode}

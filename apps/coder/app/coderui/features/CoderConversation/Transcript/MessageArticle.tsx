@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type { ReactNode } from "react";
-import type { CodexTranscriptImage } from "@taylordb/codex";
-import { Markdown, type MarkdownComponents } from "../../../common";
+import type { CodexTranscriptAttachment, CodexTranscriptImage } from "@taylordb/codex";
+import { Markdown, UserMessageAttachmentsView, type MarkdownComponents } from "../../../common";
 import { CopyMessageButton } from "./CopyMessageButton";
 import { TranscriptImageStrip } from "./TranscriptImages";
 import styles from "./Transcript.module.css";
@@ -9,10 +9,12 @@ import styles from "./Transcript.module.css";
 export function UserMessageBubble({
   blockId,
   cwd,
+  attachments,
   images,
   markdownComponents,
   text
 }: {
+  attachments?: readonly CodexTranscriptAttachment[];
   blockId?: string;
   cwd?: string;
   images?: readonly CodexTranscriptImage[];
@@ -24,7 +26,7 @@ export function UserMessageBubble({
       cwd={cwd}
       blockId={blockId}
       markdownComponents={markdownComponents}
-      message={{ role: "user", text, images: images ?? [] }}
+      message={{ role: "user", text, attachments: attachments ?? [], images: images ?? [] }}
     />
   );
 }
@@ -48,7 +50,7 @@ export function AssistantMessage({
       blockId={blockId}
       final={final}
       markdownComponents={markdownComponents}
-      message={{ role: "assistant", text, images: [] }}
+      message={{ role: "assistant", text, attachments: [], images: [] }}
       overlay={final ? <CopyMessageButton text={text} /> : null}
     />
   );
@@ -67,7 +69,12 @@ export function MessageArticle({
   cwd?: string;
   final?: boolean;
   markdownComponents?: MarkdownComponents;
-  message: { role: "user" | "assistant" | "system"; text: string; images?: readonly CodexTranscriptImage[] };
+  message: {
+    role: "user" | "assistant" | "system";
+    text: string;
+    attachments?: readonly CodexTranscriptAttachment[];
+    images?: readonly CodexTranscriptImage[];
+  };
   overlay?: ReactNode;
   trailing?: ReactNode;
 }) {
@@ -88,9 +95,24 @@ export function MessageArticle({
     >
       {overlay}
       {message.images?.length ? <TranscriptImageStrip blockId={blockId} compact images={message.images} /> : null}
+      {message.attachments?.length ? <MessageAttachments attachments={message.attachments} /> : null}
       {message.text ? <Markdown components={resolvedMarkdownComponents} text={message.text} /> : null}
       {trailing}
     </article>
+  );
+}
+
+function MessageAttachments({ attachments }: { attachments: readonly CodexTranscriptAttachment[] }) {
+  return (
+    <UserMessageAttachmentsView
+      attachments={attachments.map((attachment) => ({
+        id: attachment.id,
+        kind: "file",
+        mimeType: attachment.mimeType,
+        name: attachment.name,
+        sizeLabel: attachment.sizeLabel ?? ""
+      }))}
+    />
   );
 }
 

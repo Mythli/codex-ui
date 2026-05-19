@@ -1,4 +1,5 @@
 import type { CodexTransport } from "./CodexTransport.js";
+import type { CodexTransportRequestOptions } from "./CodexTransport.js";
 import {
   parseCodexProtocolEventTraffic,
   parseCodexProtocolRequestTraffic,
@@ -55,7 +56,11 @@ export class TraceReplayTransport implements CodexTransport {
     this.notify("initialized");
   }
 
-  request<M extends CodexRequestMethod>(method: M, params: CodexRequestParams<M>): Promise<CodexProtocolResponse<M>> {
+  request<M extends CodexRequestMethod>(
+    method: M,
+    params: CodexRequestParams<M>,
+    options: CodexTransportRequestOptions = {}
+  ): Promise<CodexProtocolResponse<M>> {
     const stdin = this.nextEntry("stdin");
     if (stdin.message?.method !== method) {
       throw new Error(`Trace expected request ${stdin.message?.method ?? "(missing)"}, got ${method}`);
@@ -64,7 +69,10 @@ export class TraceReplayTransport implements CodexTransport {
     if (typeof requestId !== "number") {
       throw new Error(`Trace request ${method} is missing numeric id`);
     }
-    const requestTraffic = parseCodexProtocolRequestTraffic(method, params, { id: requestId });
+    const requestTraffic = parseCodexProtocolRequestTraffic(method, params, {
+      id: requestId,
+      metadata: options.metadata
+    });
     this.emitTraffic(requestTraffic);
 
     for (;;) {
@@ -85,7 +93,7 @@ export class TraceReplayTransport implements CodexTransport {
         if (responseTraffic.kind !== "response") {
           throw new Error(`Trace response ${method} did not parse as a response`);
         }
-        this.emitTraffic(responseTraffic);
+        this.emitTraffic(options.metadata ? { ...responseTraffic, metadata: options.metadata } : responseTraffic);
         this.drainNotificationsUntilNextInput();
         return Promise.resolve(responseTraffic.response as CodexProtocolResponse<M>);
       }

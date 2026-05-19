@@ -1,4 +1,4 @@
-import type { CodexProtocolTraffic } from "../protocol/stream/index.js";
+import { codexCanonicalRequestId, type CodexProtocolTraffic } from "../protocol/stream/index.js";
 
 export class CodexRuntimeTrafficLedger {
   private readonly seenRequestIds = new Set<string>();
@@ -6,10 +6,10 @@ export class CodexRuntimeTrafficLedger {
 
   shouldReduce(traffic: CodexProtocolTraffic): boolean {
     if (traffic.kind === "request") {
-      return this.rememberRequest(traffic.id);
+      return this.rememberRequest(codexCanonicalRequestId(traffic));
     }
     if (traffic.kind === "response" || traffic.kind === "responseError") {
-      this.rememberRequest(traffic.id);
+      this.rememberRequest(codexCanonicalRequestId(traffic));
     }
     return true;
   }

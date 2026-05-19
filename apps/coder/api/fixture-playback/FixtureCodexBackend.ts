@@ -7,7 +7,8 @@ import {
   type CodexRolloutEntry,
   type CodexScenarioAction,
   type CodexScenarioFixture,
-  type CodexTransport
+  type CodexTransport,
+  type CodexTransportRequestOptions
 } from "@taylordb/codex/server";
 import { parseRolloutJsonlThreadTurns } from "../../../../packages/codex/src/core";
 import type {
@@ -49,7 +50,8 @@ export class FixtureCodexBackend implements CodexTransport {
 
   async request<M extends CodexRequestMethod>(
     method: M,
-    params: CodexRequestParams<M>
+    params: CodexRequestParams<M>,
+    options: CodexTransportRequestOptions = {}
   ): Promise<CodexProtocolResponse<M>> {
     if (this.closed) {
       throw new Error(`Fixture playback backend is closed; cannot request ${method}`);
@@ -58,17 +60,17 @@ export class FixtureCodexBackend implements CodexTransport {
     if (method === "thread/list") {
       return this.emitSyntheticResponse(method, params, {
         data: this.hasVisibleThread() ? [this.syntheticThread()] : []
-      } as CodexProtocolResponse<M>);
+      } as CodexProtocolResponse<M>, options);
     }
     if (method === "thread/read") {
       return this.emitSyntheticResponse(method, params, {
         thread: this.syntheticThread()
-      } as CodexProtocolResponse<M>);
+      } as CodexProtocolResponse<M>, options);
     }
     if (method === "fs/readFile") {
       return this.emitSyntheticResponse(method, params, {
         dataText: jsonlFromRecords(this.visibleSessionRecords())
-      } as CodexProtocolResponse<M>);
+      } as CodexProtocolResponse<M>, options);
     }
     if (method === "model/list") {
       return this.emitSyntheticResponse(method, params, {
@@ -76,7 +78,7 @@ export class FixtureCodexBackend implements CodexTransport {
           { id: "gpt-5.5", model: "gpt-5.5", displayName: "OpenAI: GPT-5.5", isDefault: true },
           { id: "gpt-5.4", model: "gpt-5.4", displayName: "OpenAI: GPT-5.4" }
         ]
-      } as CodexProtocolResponse<M>);
+      } as CodexProtocolResponse<M>, options);
     }
     if (
       method === "thread/archive" ||
@@ -84,7 +86,7 @@ export class FixtureCodexBackend implements CodexTransport {
       method === "turn/interrupt" ||
       method === "initialized"
     ) {
-      return this.emitSyntheticResponse(method, params, {} as CodexProtocolResponse<M>);
+      return this.emitSyntheticResponse(method, params, {} as CodexProtocolResponse<M>, options);
     }
 
     throw new Error(`Fixture ${this.definition.id} does not handle ${method}; use fixture controls to drive playback`);
@@ -318,7 +320,11 @@ export class FixtureCodexBackend implements CodexTransport {
     } as Extract<CodexProtocolTraffic, { kind: "response" }>);
   }
 
-  private emitSyntheticRequest<M extends CodexRequestMethod>(method: M, params: CodexRequestParams<M>): string {
+  private emitSyntheticRequest<M extends CodexRequestMethod>(
+    method: M,
+    params: CodexRequestParams<M>,
+    options: CodexTransportRequestOptions = {}
+  ): string {
     const id = this.nextRequestId();
     const ids = this.pendingSyntheticResponseIdsByMethod.get(method) ?? [];
     ids.push(id);
@@ -327,6 +333,7 @@ export class FixtureCodexBackend implements CodexTransport {
       kind: "request",
       id,
       method,
+      metadata: options.metadata,
       params,
       timestampMs: Date.now()
     } as Extract<CodexProtocolTraffic, { kind: "request" }>);
@@ -349,14 +356,16 @@ export class FixtureCodexBackend implements CodexTransport {
   private async emitSyntheticResponse<M extends CodexRequestMethod>(
     method: M,
     params: CodexRequestParams<M>,
-    response: CodexProtocolResponse<M>
+    response: CodexProtocolResponse<M>,
+    options: CodexTransportRequestOptions = {}
   ): Promise<CodexProtocolResponse<M>> {
-    const id = this.emitSyntheticRequest(method, params);
+    const id = this.emitSyntheticRequest(method, params, options);
     this.forgetPendingSyntheticResponseId(method, id);
     this.emit({
       kind: "response",
       id,
       method,
+      metadata: options.metadata,
       response,
       timestampMs: Date.now()
     } as Extract<CodexProtocolTraffic, { kind: "response" }>);

@@ -14,6 +14,7 @@ export { Modal, type ModalProps } from "./Modal";
 export { Pagination, type PaginationProps } from "./Pagination";
 export { Popover, type PopoverProps, type PopoverRenderTriggerProps } from "./Popover";
 export { SegmentedControl, type SegmentedControlOption } from "./SegmentedControl";
+export { SlidingSidebar, type SlidingSidebarProps, type SlidingSidebarSide } from "./SlidingSidebar";
 export { Spinner } from "./Spinner/Spinner";
 export { Stack } from "./Stack";
 export { StatDelta } from "./StatDelta";

@@ -1,10 +1,11 @@
 import type { Namespace, Socket } from "socket.io";
 import type { CodexTransport } from "../core/transport/CodexTransport.js";
-import { parseCodexRequestParams, type CodexRequestMethod, type CodexRequestParams } from "../protocol/stream/index.js";
+import { parseCodexRequestParams, type CodexProtocolMetadata, type CodexRequestMethod, type CodexRequestParams } from "../protocol/stream/index.js";
 import { AppServerClient } from "./AppServerClient.js";
 
 type SocketRequest = {
   method: string;
+  metadata?: CodexProtocolMetadata;
   params?: unknown;
   codexBin?: string;
 };
@@ -30,7 +31,7 @@ export class CodexSocketIoServer {
 
   constructor(
     private readonly namespace: Namespace,
-    private readonly options: CodexSocketIoServerOptions = {}
+    _options: CodexSocketIoServerOptions = {}
   ) {}
 
   attach(): void {
@@ -69,7 +70,7 @@ export class CodexSocketIoServer {
 
     const transport = await this.ensureClient();
     const method = request.method as CodexRequestMethod;
-    return transport.request(method, requestParams(method, request.params));
+    return transport.request(method, requestParams(method, request.params), { metadata: request.metadata });
   }
 
   private async handleNotify(request: SocketRequest): Promise<void> {

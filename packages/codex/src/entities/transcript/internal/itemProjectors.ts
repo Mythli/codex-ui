@@ -8,6 +8,7 @@ import type {
 import { diffStat, fileActionLabel } from "./diff.js";
 import type {
   CodexTranscriptCommandAction,
+  CodexTranscriptAttachment,
   CodexTranscriptFile,
   CodexTranscriptImage,
   CodexTranscriptItem,
@@ -56,14 +57,17 @@ export function createTranscriptItem(
   };
 
   switch (item.type) {
-    case "userMessage":
+    case "userMessage": {
+      const userInput = projectUserInput(item.id, item.content);
       return {
         ...base,
         role: "user",
-        text: userInputText(item.content),
+        text: userInput.text,
         title: "User message",
+        attachments: userInput.attachments,
         images: userInputImages(item.id, item.content)
       };
+    }
     case "agentMessage":
       return {
         ...base,
@@ -180,13 +184,67 @@ function commandAction(action: CodexParsedCommandAction): CodexTranscriptCommand
   };
 }
 
-function userInputText(content: readonly CodexParsedUserInput[]): string {
-  return content.flatMap((entry) => {
+function projectUserInput(itemId: string, content: readonly CodexParsedUserInput[]): {
+  attachments: CodexTranscriptAttachment[];
+  text: string;
+} {
+  const attachments: CodexTranscriptAttachment[] = [];
+  const text = content.flatMap((entry, entryIndex) => {
     if (entry.type === "text" || entry.type === "input_text") {
-      return [entry.text];
+      const projected = projectAttachmentReferences(itemId, entryIndex, entry.text);
+      attachments.push(...projected.attachments);
+      return projected.text ? [projected.text] : [];
+    }
+    if (entry.type === "localImage") {
+      const asset = assetOf(entry as typeof entry & AssetBearing);
+      if (!isImagePath(entry.path, asset)) {
+        attachments.push(fileAttachmentFromPath(`${itemId}-attachment-${entryIndex}`, entry.path, asset));
+      }
     }
     return [];
   }).join("\n");
+  return { attachments, text };
+}
+
+function projectAttachmentReferences(itemId: string, entryIndex: number, text: string): {
+  attachments: CodexTranscriptAttachment[];
+  text: string;
+} {
+  const attachments: CodexTranscriptAttachment[] = [];
+  const lines = text.split(/\r?\n/);
+  const visibleLines = lines.flatMap((line, lineIndex) => {
+    const projected = projectAttachmentReferenceLine(`${itemId}-attachment-${entryIndex}-${lineIndex}`, line);
+    if (!projected) {
+      return [line];
+    }
+    attachments.push(projected.attachment);
+    return projected.text ? [projected.text] : [];
+  });
+  return {
+    attachments,
+    text: attachments.length > 0 ? visibleLines.join("\n").trim() : text
+  };
+}
+
+function projectAttachmentReferenceLine(id: string, line: string): {
+  attachment: CodexTranscriptAttachment;
+  text: string;
+} | undefined {
+  const match = line.match(/^(.*?)Attached file: (.+) \(([^,]+), ([^)]+)\) at (.+)\. Inspect it if relevant\.$/);
+  if (!match) {
+    return undefined;
+  }
+  return {
+    attachment: {
+      id,
+      kind: "file",
+      name: match[2] ?? "attachment",
+      mimeType: match[3],
+      sizeLabel: match[4],
+      path: match[5]
+    },
+    text: (match[1] ?? "").trimEnd()
+  };
 }
 
 function userInputImages(itemId: string, content: readonly CodexParsedUserInput[]): CodexTranscriptImage[] {
@@ -203,7 +261,10 @@ function userInputImages(itemId: string, content: readonly CodexParsedUserInput[
       }];
     }
     if (entry.type === "localImage") {
-      return [pathImage(`${itemId}-image-${index}`, entry.path, assetOf(entry as typeof entry & AssetBearing), "Attached image")];
+      const asset = assetOf(entry as typeof entry & AssetBearing);
+      return isImagePath(entry.path, asset)
+        ? [pathImage(`${itemId}-image-${index}`, entry.path, asset, "Attached image")]
+        : [];
     }
     if (entry.type === "input_image") {
       const asset = assetOf(entry as typeof entry & AssetBearing);
@@ -231,14 +292,83 @@ function pathImage(id: string, path: string, asset?: CodexAssetRef, alt = imageA
   };
 }
 
+function fileAttachmentFromPath(id: string, path: string, asset?: CodexAssetRef): CodexTranscriptAttachment {
+  return {
+    id,
+    kind: "file",
+    name: fileNameFromPath(path),
+    mimeType: asset?.mimeType ?? mimeTypeFromPath(path),
+    path,
+    sizeLabel: asset?.sizeBytes ? formatSize(asset.sizeBytes) : undefined
+  };
+}
+
+function isImagePath(path: string, asset?: CodexAssetRef): boolean {
+  if (asset?.mimeType) {
+    return asset.mimeType.startsWith("image/");
+  }
+  const extension = extensionFromPath(path);
+  return extension ? imageExtensions.has(extension) : false;
+}
+
+function fileNameFromPath(path: string): string {
+  return path.split(/[\\/]/).at(-1) || "attachment";
+}
+
+function extensionFromPath(path: string): string | undefined {
+  const fileName = fileNameFromPath(path).toLowerCase();
+  const dotIndex = fileName.lastIndexOf(".");
+  return dotIndex > 0 ? fileName.slice(dotIndex + 1) : undefined;
+}
+
+function mimeTypeFromPath(path: string): string | undefined {
+  const extension = extensionFromPath(path);
+  return extension ? mimeTypesByExtension[extension] : undefined;
+}
+
+function formatSize(bytes: number): string {
+  if (bytes < 1024) {
+    return `${bytes} B`;
+  }
+  const units = ["KB", "MB", "GB"];
+  let value = bytes / 1024;
+  for (const unit of units) {
+    if (value < 1024 || unit === units.at(-1)) {
+      return `${value >= 10 ? value.toFixed(0) : value.toFixed(1)} ${unit}`;
+    }
+    value /= 1024;
+  }
+  return `${bytes} B`;
+}
+
+const imageExtensions = new Set(["avif", "bmp", "gif", "heic", "jpeg", "jpg", "png", "svg", "tif", "tiff", "webp"]);
+
+const mimeTypesByExtension: Record<string, string> = {
+  csv: "text/csv",
+  doc: "application/msword",
+  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  dxf: "application/x-dxf",
+  json: "application/json",
+  md: "text/markdown",
+  pdf: "application/pdf",
+  ppt: "application/vnd.ms-powerpoint",
+  pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  txt: "text/plain",
+  xls: "application/vnd.ms-excel",
+  xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  zip: "application/zip"
+};
+
 function fileChange(change: Extract<CodexParsedThreadItem, { type: "fileChange" }>["changes"][number]): CodexTranscriptFile {
   const stats = diffStat(change.diff ?? "");
   return {
     path: change.path,
     action: fileActionLabel(change.kind?.type),
     additions: stats.additions,
+    content: change.content,
     deletions: stats.deletions,
     diff: change.diff,
+    kind: change.kind,
     asset: assetOf(change as typeof change & AssetBearing)
   };
 }

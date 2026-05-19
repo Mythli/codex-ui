@@ -6,7 +6,6 @@ import type {
   CodexRequestParams
 } from "@taylordb/codex/protocol";
 import type {
-  CodexMiddlewareContext,
   CodexProtocolMiddleware
 } from "./types.js";
 import type { CodexTransport } from "@taylordb/codex/server";

@@ -1,4 +1,5 @@
-import { FiFile, FiX } from "react-icons/fi";
+import { FiX } from "react-icons/fi";
+import { FileTypeIcon } from "../FileTypeIcon";
 import type { CodexAttachment } from "../types";
 import styles from "../codex.module.css";
 
@@ -9,9 +10,14 @@ export function AttachmentChip({
   attachment: CodexAttachment;
   onRemove?: () => void;
 }) {
+  const previewUrl = attachment.previewUrl ?? attachment.dataUrl;
   return (
     <span className={styles.chip}>
-      <FiFile aria-hidden="true" />
+      {attachment.kind === "image" && previewUrl ? (
+        <img alt="" className={styles.chipThumbnail} src={previewUrl} />
+      ) : (
+        <FileTypeIcon file={attachment} />
+      )}
       <span className={styles.truncate}>{attachment.name}</span>
       <span className={styles.muted}>{attachment.sizeLabel}</span>
       {onRemove ? (

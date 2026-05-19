@@ -58,7 +58,7 @@ export {
   standardScenarioMultiToolMessage,
   standardScenarioSingleToolMessage
 } from "./core/standardScenarioFixture.js";
-export { type CodexTransport } from "./core/transport/CodexTransport.js";
+export { type CodexTransport, type CodexTransportRequestOptions } from "./core/transport/CodexTransport.js";
 export {
   TraceReplayTransport,
   parseTraceTransportEntries,
@@ -68,6 +68,7 @@ export {
 } from "./core/transport/TraceReplayTransport.js";
 export {
   CodexTrafficPacket,
+  codexCanonicalRequestId,
   codexProtocolDiagnosticTrafficSchema,
   codexProtocolErrorResponseTrafficSchema,
   codexProtocolEventTrafficSchema,
@@ -93,6 +94,7 @@ export {
   parseCodexWireObject,
   type CodexProtocolEvent,
   type CodexProtocolEventByMethod,
+  type CodexProtocolMetadata,
   type CodexProtocolTraffic,
   type CodexProtocolRequestTraffic,
   type CodexProtocolResponseTraffic,
@@ -124,6 +126,7 @@ export {
   type CodexUnknownThreadItem
 } from "./protocol/stream/index.js";
 export {
+  buildFileChangePatch,
   CodexThreadReducer,
   type CodexAssetBearing,
   type CodexAssetKind,
@@ -137,6 +140,7 @@ export {
   type CodexCommandEntry,
   type CodexCurrentActivity,
   type CodexFileChangeEntry,
+  type CodexFilePatchChange,
   type CodexImageBlock,
   type CodexModelReroute,
   type CodexReasoningEntry,
@@ -145,6 +149,7 @@ export {
   type CodexThreadTokenUsage,
   type CodexTokenUsageBreakdown,
   type CodexTranscript,
+  type CodexTranscriptAttachment,
   type CodexTranscriptFile,
   type CodexTranscriptImage,
   type CodexTranscriptItem,

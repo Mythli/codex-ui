@@ -2,6 +2,7 @@ import { isRecord } from "./common.js";
 import {
   parseCodexProtocolRequestTraffic,
   parseCodexProtocolTraffic,
+  type CodexProtocolMetadata,
   type CodexProtocolRequestTraffic,
   type CodexProtocolTraffic,
   type CodexRequestMethod
@@ -11,6 +12,8 @@ export type CodexWireParseContext = {
   responseMethod?: CodexRequestMethod;
   responseMethodForId?: (id: string | number) => CodexRequestMethod | undefined;
   id?: string | number;
+  metadata?: CodexProtocolMetadata;
+  timestampMs?: number;
 };
 
 export type CodexWireParserMiddleware = ReturnType<typeof createCodexWireParserMiddleware>;
@@ -29,7 +32,7 @@ export function createCodexWireParserMiddleware() {
     observeRequest<M extends CodexRequestMethod>(
       method: M,
       params: unknown,
-      context: { id?: string | number; timestampMs?: number } = {}
+      context: { id?: string | number; metadata?: CodexProtocolMetadata; timestampMs?: number } = {}
     ): CodexProtocolRequestTraffic<M> {
       const traffic = parseCodexProtocolRequestTraffic(method, params, context);
       requestMethodsById.set(traffic.id, method);
@@ -83,8 +86,22 @@ export function parseCodexWireObject(value: unknown, context: CodexWireParseCont
   if (typeof value.id === "number" && ("result" in value || "error" in value)) {
     const method = context.responseMethod ?? context.responseMethodForId?.(value.id) ?? "unknown";
     return "error" in value
-      ? parseCodexProtocolTraffic({ kind: "responseError", id: value.id, method, error: value.error })
-      : parseCodexProtocolTraffic({ kind: "response", id: value.id, method, response: value.result });
+      ? parseCodexProtocolTraffic({
+        kind: "responseError",
+        id: value.id,
+        method,
+        error: value.error,
+        metadata: context.metadata,
+        timestampMs: context.timestampMs
+      })
+      : parseCodexProtocolTraffic({
+        kind: "response",
+        id: value.id,
+        method,
+        response: value.result,
+        metadata: context.metadata,
+        timestampMs: context.timestampMs
+      });
   }
 
   if (typeof value.id === "number" && typeof value.method === "string") {
@@ -92,7 +109,9 @@ export function parseCodexWireObject(value: unknown, context: CodexWireParseCont
       kind: "serverRequest",
       id: value.id,
       method: value.method,
-      params: value.params
+      params: value.params,
+      metadata: context.metadata,
+      timestampMs: context.timestampMs
     });
   }
 

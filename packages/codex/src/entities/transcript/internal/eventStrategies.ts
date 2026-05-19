@@ -18,7 +18,6 @@ import {
 } from "./state.js";
 import type {
   CodexTranscriptItemSource,
-  CodexTranscriptProtocolItem,
   CodexTranscriptState
 } from "../model.js";
 

@@ -11,10 +11,16 @@ import {
 } from "../entities/threadIndex/index.js";
 import {
   CodexTrafficPacket,
+  parseCodexProtocolErrorResponseTraffic,
+  parseCodexProtocolRequestTraffic,
+  parseCodexProtocolResponseTraffic,
+  type CodexProtocolResponse,
   type CodexRequestParams,
+  type CodexRequestMethod,
   type CodexProtocolTraffic
 } from "../protocol/stream/index.js";
 import {
+  createCodexTurnStartRequestParams,
   currentCwd,
   executeCodexRequestPlan,
   planArchiveThread,
@@ -35,7 +41,7 @@ import type {
   CodexRuntimeSessionSettings,
   CodexThreadTokenUsage
 } from "../entities/transcript/index.js";
-import type { CodexTransport } from "./transport/CodexTransport.js";
+import type { CodexTransport, CodexTransportRequestOptions } from "./transport/CodexTransport.js";
 
 export type CodexUIRuntimeOptions = {
   transport: CodexTransport;
@@ -51,6 +57,7 @@ export type CodexRuntimeState = {
   status: CodexRuntimeStatus;
   activeRequestIds: string[];
   activeTurnId?: string;
+  isProvisionalThread?: boolean;
   error?: string;
   session?: CodexRuntimeSessionSettings;
   tokenUsage?: CodexThreadTokenUsage;
@@ -63,6 +70,7 @@ export type CodexRuntimeState = {
 
 export type CodexUIRuntimeActions = {
   activateThread(threadId: string): void;
+  hydrate(input: { threadIndex?: CodexThreadIndexState; runtimeState?: CodexRuntimeState }): void;
   openThread(threadId: string): Promise<void>;
   refreshThreadIndex(input?: Pick<CodexRequestParams<"thread/list">, "limit" | "cwd">): Promise<void>;
   sendMessageToThread(input: CodexUIThreadMessageOptions): Promise<void>;
@@ -134,10 +142,16 @@ class CodexUIRuntimeImpl implements CodexUIRuntime {
   #threadIndexListeners = new Set<(state: CodexThreadIndexState) => void>();
   #awaitingThreadStart = false;
   #pendingThreadStartRequestIds = new Set<string>();
+  #clientRequestSequence = 0;
+  #provisionalThreadSequence = 0;
+  #pendingProvisionalThreadId?: string;
+  #provisionalThreadIds = new Set<string>();
+  #optimisticTurnRequestIdsBySignature = new Map<string, string>();
   #unsubscribe: () => void;
 
   readonly actions: CodexUIRuntimeActions = {
     activateThread: (threadId) => this.activateThread(threadId),
+    hydrate: (input) => this.hydrate(input),
     openThread: (threadId) => this.openThread(threadId),
     refreshThreadIndex: (input) => this.refreshThreadIndex(input),
     sendMessageToThread: (input) => this.sendMessageToThread(input),
@@ -168,11 +182,13 @@ class CodexUIRuntimeImpl implements CodexUIRuntime {
     const beforeRuntime = summarizeRuntimeState(this.#state);
     let activeThreadReduction = "skipped";
     let dispatchAction = "reduce";
-
-    this.#threadIndexState = this.#threadIndexReducer.reduce(this.#threadIndexState, traffic);
-    this.emitThreadIndex();
-
     const packet = CodexTrafficPacket.from(traffic);
+
+    if (!packet.threadId || !this.#provisionalThreadIds.has(packet.threadId)) {
+      this.#threadIndexState = this.#threadIndexReducer.reduce(this.#threadIndexState, traffic);
+      this.emitThreadIndex();
+    }
+
     if (packet.isEvent("thread/archived") && packet.threadId) {
       this.#reducersByThreadId.delete(packet.threadId);
       this.#threadStatesByThreadId.delete(packet.threadId);
@@ -209,6 +225,12 @@ class CodexUIRuntimeImpl implements CodexUIRuntime {
     if (this.isPendingThreadStartResult(packet)) {
       if (traffic.kind === "responseError") {
         this.#state = { ...emptyRuntimeState("failed"), error: runtimeErrorMessage(traffic.error) };
+        if (this.#pendingProvisionalThreadId) {
+          this.#provisionalThreadIds.delete(this.#pendingProvisionalThreadId);
+          this.#reducersByThreadId.delete(this.#pendingProvisionalThreadId);
+          this.#threadStatesByThreadId.delete(this.#pendingProvisionalThreadId);
+          this.#pendingProvisionalThreadId = undefined;
+        }
         this.forgetPendingThreadStart(packet.requestId);
         this.emit();
         dispatchAction = "pending-thread-start-failed";
@@ -223,8 +245,13 @@ class CodexUIRuntimeImpl implements CodexUIRuntime {
         return;
       }
       if (packet.threadId) {
-        this.activateThread(packet.threadId);
-        dispatchAction = "activate-pending-thread";
+        if (this.#pendingProvisionalThreadId) {
+          this.adoptProvisionalThread(this.#pendingProvisionalThreadId, packet.threadId);
+          dispatchAction = "adopt-provisional-thread";
+        } else {
+          this.activateThread(packet.threadId);
+          dispatchAction = "activate-pending-thread";
+        }
       }
       this.forgetPendingThreadStart(packet.requestId);
     }
@@ -288,12 +315,36 @@ class CodexUIRuntimeImpl implements CodexUIRuntime {
     this.options.transport.close();
   }
 
+  private hydrate(input: { threadIndex?: CodexThreadIndexState; runtimeState?: CodexRuntimeState }): void {
+    if (input.threadIndex) {
+      this.#threadIndexState = input.threadIndex;
+      this.emitThreadIndex();
+    }
+
+    const thread = input.runtimeState?.thread;
+    if (!thread?.threadId) {
+      return;
+    }
+
+    this.#activeThreadId = thread.threadId;
+    this.ensureThreadReducer(thread.threadId);
+    this.#threadStatesByThreadId.set(thread.threadId, thread);
+    this.#state = runtimeStateFromThread(thread);
+    const indexed = this.#threadIndexState.threadsById[thread.threadId];
+    this.#threadCacheMetadataByThreadId.set(thread.threadId, {
+      loadedAtMs: Date.now(),
+      loadedIndexUpdatedAt: indexed?.updatedAt,
+      loadedSessionPath: thread.sessionPath ?? indexed?.path
+    });
+    this.emit();
+  }
+
   private async openThread(threadId: string): Promise<void> {
     this.activateThread(threadId);
     await executeCodexRequestPlan({
       plan: planOpenThread({ threadId, includeTurns: false, readSessionFile: true }),
       context: this.actionContext({ activeThreadId: threadId }),
-      transport: this.options.transport
+      transport: this.localDispatchingTransport()
     });
   }
 
@@ -301,7 +352,7 @@ class CodexUIRuntimeImpl implements CodexUIRuntime {
     await executeCodexRequestPlan({
       plan: planListThreads(input),
       context: this.actionContext(),
-      transport: this.options.transport
+      transport: this.localDispatchingTransport()
     });
   }
 
@@ -313,7 +364,7 @@ class CodexUIRuntimeImpl implements CodexUIRuntime {
       const result = await executeCodexRequestPlan({
         plan: planStartThread({ cwd: options.cwd }),
         context: this.actionContext(),
-        transport: this.options.transport
+        transport: this.localDispatchingTransport()
       });
       if (result.activeThreadId) {
         this.ensureThread(result.activeThreadId);
@@ -323,10 +374,11 @@ class CodexUIRuntimeImpl implements CodexUIRuntime {
 
   private async sendMessageToThread(input: CodexUIThreadMessageOptions): Promise<void> {
     this.ensureThread(input.threadId);
+    this.dispatchOptimisticTurnStart(input.threadId, input);
     const result = await executeCodexRequestPlan({
       plan: planSendMessageToThread(input),
       context: this.actionContext({ activeThreadId: input.threadId }),
-      transport: this.options.transport
+      transport: this.localDispatchingTransport()
     });
     if (result.activeThreadId) {
       this.ensureThread(result.activeThreadId);
@@ -334,15 +386,14 @@ class CodexUIRuntimeImpl implements CodexUIRuntime {
   }
 
   private async startThreadWithMessage(input: CodexUIStartThreadMessageOptions): Promise<{ threadId: string }> {
-    this.#activeThreadId = undefined;
-    this.#state = emptyRuntimeState("loading");
-    this.emit();
+    const provisionalThreadId = this.createProvisionalThread(input.cwd);
+    this.dispatchOptimisticTurnStart(provisionalThreadId, input);
     let threadId: string | undefined;
     await this.withPendingThreadStart(async () => {
       const result = await executeCodexRequestPlan({
         plan: planStartThreadWithMessage(input),
         context: this.actionContext(),
-        transport: this.options.transport
+        transport: this.localDispatchingTransport()
       });
       threadId = result.activeThreadId;
       if (threadId) {
@@ -359,7 +410,7 @@ class CodexUIRuntimeImpl implements CodexUIRuntime {
     await executeCodexRequestPlan({
       plan: planStopTurn(),
       context: this.actionContext(),
-      transport: this.options.transport
+      transport: this.localDispatchingTransport()
     });
   }
 
@@ -367,8 +418,166 @@ class CodexUIRuntimeImpl implements CodexUIRuntime {
     await executeCodexRequestPlan({
       plan: planArchiveThread({ threadId }),
       context: this.actionContext(),
-      transport: this.options.transport
+      transport: this.localDispatchingTransport()
     });
+  }
+
+  private localDispatchingTransport(): CodexTransport {
+    return {
+      request: (method, params, options = {}) => this.requestWithLocalDispatch(method, params, options),
+      notify: (method, params) => this.options.transport.notify(method, params),
+      onTraffic: (listener) => this.options.transport.onTraffic(listener),
+      onDiagnostic: (listener) => this.options.transport.onDiagnostic(listener),
+      close: () => this.options.transport.close()
+    };
+  }
+
+  private async requestWithLocalDispatch<M extends CodexRequestMethod>(
+    method: M,
+    params: CodexRequestParams<M>,
+    options: CodexTransportRequestOptions = {}
+  ): Promise<CodexProtocolResponse<M>> {
+    const prepared = this.prepareLocalRequest(method, params, options.metadata);
+    if (!prepared.alreadyDispatched) {
+      this.dispatch(parseCodexProtocolRequestTraffic(method, params, {
+        id: prepared.clientRequestId,
+        metadata: prepared.metadata,
+        timestampMs: Date.now()
+      }));
+    }
+    try {
+      const response = await this.options.transport.request(method, params, {
+        ...options,
+        metadata: prepared.metadata
+      });
+      if (this.hasActiveRequest(prepared.clientRequestId)) {
+        this.dispatch(parseCodexProtocolResponseTraffic(method, response, {
+          id: prepared.clientRequestId,
+          metadata: prepared.metadata,
+          timestampMs: Date.now()
+        }));
+      }
+      return response;
+    } catch (error) {
+      if (this.hasActiveRequest(prepared.clientRequestId)) {
+        this.dispatch(parseCodexProtocolErrorResponseTraffic(method, serializeRequestError(error), {
+          id: prepared.clientRequestId,
+          metadata: prepared.metadata,
+          timestampMs: Date.now()
+        }));
+      }
+      throw error;
+    }
+  }
+
+  private prepareLocalRequest<M extends string>(
+    method: M,
+    params: unknown,
+    metadata: CodexTransportRequestOptions["metadata"]
+  ): { alreadyDispatched: boolean; clientRequestId: string; metadata: NonNullable<CodexTransportRequestOptions["metadata"]> } {
+    if (method === "turn/start") {
+      const signature = turnStartRequestSignature(params);
+      const optimisticRequestId = this.#optimisticTurnRequestIdsBySignature.get(signature);
+      if (optimisticRequestId) {
+        this.#optimisticTurnRequestIdsBySignature.delete(signature);
+        return {
+          alreadyDispatched: true,
+          clientRequestId: optimisticRequestId,
+          metadata: { ...metadata, clientRequestId: optimisticRequestId }
+        };
+      }
+    }
+    const clientRequestId = metadata?.clientRequestId ?? this.nextClientRequestId();
+    return {
+      alreadyDispatched: false,
+      clientRequestId,
+      metadata: { ...metadata, clientRequestId }
+    };
+  }
+
+  private dispatchOptimisticTurnStart(
+    threadId: string,
+    input: CodexUIThreadMessageOptions | CodexUIStartThreadMessageOptions
+  ): void {
+    const params = createCodexTurnStartRequestParams({
+      activeThreadId: threadId,
+      input: input.input,
+      cwd: input.cwd ?? this.#state.cwd,
+      model: input.model,
+      reasoningEffort: input.reasoningEffort,
+      sandbox: input.sandbox,
+      approvalPolicy: input.approvalPolicy,
+      defaults: this.options.defaults
+    });
+    const clientRequestId = this.nextClientRequestId("turn");
+    this.#optimisticTurnRequestIdsBySignature.set(turnStartRequestSignature(params), clientRequestId);
+    this.dispatch(parseCodexProtocolRequestTraffic("turn/start", params, {
+      id: clientRequestId,
+      metadata: { clientRequestId },
+      timestampMs: Date.now()
+    }));
+  }
+
+  private createProvisionalThread(cwd?: string): string {
+    const threadId = `local-thread:${++this.#provisionalThreadSequence}`;
+    this.#pendingProvisionalThreadId = threadId;
+    this.#provisionalThreadIds.add(threadId);
+    this.#activeThreadId = threadId;
+    this.ensureThreadReducer(threadId);
+    const thread = {
+      ...this.threadState(threadId),
+      cwd,
+      isProvisionalThread: true,
+      status: "loading" as const
+    };
+    this.#threadStatesByThreadId.set(threadId, thread);
+    this.#state = runtimeStateFromThread(thread);
+    this.emit();
+    return threadId;
+  }
+
+  private adoptProvisionalThread(provisionalThreadId: string, realThreadId: string): void {
+    if (provisionalThreadId === realThreadId) {
+      return;
+    }
+    const provisionalState = this.#threadStatesByThreadId.get(provisionalThreadId);
+    if (!provisionalState) {
+      this.activateThread(realThreadId);
+      return;
+    }
+    this.#reducersByThreadId.delete(provisionalThreadId);
+    this.#threadStatesByThreadId.delete(provisionalThreadId);
+    this.#threadCacheMetadataByThreadId.delete(provisionalThreadId);
+    this.#provisionalThreadIds.delete(provisionalThreadId);
+    if (this.#pendingProvisionalThreadId === provisionalThreadId) {
+      this.#pendingProvisionalThreadId = undefined;
+    }
+    const adopted = retargetThreadState(provisionalState, realThreadId);
+    this.#reducersByThreadId.set(realThreadId, new CodexThreadReducer({
+      threadId: realThreadId,
+      sessionPath: adopted.sessionPath ?? this.#threadIndexState.threadsById[realThreadId]?.path
+    }));
+    this.#threadStatesByThreadId.set(realThreadId, adopted);
+    this.#activeThreadId = realThreadId;
+    this.#state = runtimeStateFromThread(adopted);
+    this.emit();
+  }
+
+  private nextClientRequestId(prefix = "request"): string {
+    this.#clientRequestSequence += 1;
+    return `client:${prefix}:${this.#clientRequestSequence}`;
+  }
+
+  private hasActiveRequest(requestId: string): boolean {
+    if (this.#pendingThreadStartRequestIds.has(requestId) || this.#threadIndexState.activeRequestIds.includes(requestId)) {
+      return true;
+    }
+    for (const state of this.#threadStatesByThreadId.values()) {
+      if (state.activeRequestIds.includes(requestId)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private activateThread(threadId: string): void {
@@ -562,10 +771,51 @@ function runtimeStateFromThread(thread: CodexThreadState): CodexRuntimeState {
   };
 }
 
+function retargetThreadState(thread: CodexThreadState, threadId: string): CodexThreadState {
+  return {
+    ...thread,
+    threadId,
+    isProvisionalThread: undefined,
+    transcript: thread.transcript
+      ? { ...thread.transcript, threadId }
+      : thread.transcript
+  };
+}
+
+function turnStartRequestSignature(params: unknown): string {
+  if (!params || typeof params !== "object") {
+    return JSON.stringify(params);
+  }
+  const record = params as Record<string, unknown>;
+  return stableStringify({
+    effort: record.effort,
+    input: record.input,
+    model: record.model
+  });
+}
+
+function serializeRequestError(error: unknown): Record<string, unknown> {
+  if (error instanceof Error) {
+    return { name: error.name, message: error.message, stack: error.stack };
+  }
+  return { message: String(error) };
+}
+
 function runtimeErrorMessage(error: unknown): string {
   return error && typeof error === "object" && "message" in error && typeof error.message === "string"
     ? error.message
     : JSON.stringify(error);
+}
+
+function stableStringify(value: unknown): string {
+  if (Array.isArray(value)) {
+    return `[${value.map(stableStringify).join(",")}]`;
+  }
+  if (!value || typeof value !== "object") {
+    return JSON.stringify(value);
+  }
+  const record = value as Record<string, unknown>;
+  return `{${Object.keys(record).sort().map((key) => `${JSON.stringify(key)}:${stableStringify(record[key])}`).join(",")}}`;
 }
 
 type RuntimeReductionSummary = {

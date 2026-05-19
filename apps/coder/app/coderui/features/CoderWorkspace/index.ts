@@ -9,7 +9,7 @@ export {
   ChatSwitcher,
   type CoderSwitcherChat,
   type CoderSwitcherProject
-} from "../CoderGit";
+} from "../CoderNavigation";
 export {
   PreviewFrame,
   PromptHome,
@@ -18,4 +18,3 @@ export {
   SidebarHeader,
   WorkspaceTopBar
 } from "../CoderInterface";
-export { VersionSwitcher, type VersionSwitcherProps } from "../CoderGit";

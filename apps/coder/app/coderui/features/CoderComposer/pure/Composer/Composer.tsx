@@ -18,6 +18,7 @@ export function Composer({
   onSelectModel,
   onSelectPermissionMode,
   onSelectReasoningEffort,
+  onBeforeSubmitPrompt,
   onSubmitPrompt,
   prompt,
   selectedPermissionMode = "default",
@@ -34,6 +35,7 @@ export function Composer({
   onSelectModel: (id: string) => void;
   onSelectPermissionMode?: (value: CoderPermissionMode) => void;
   onSelectReasoningEffort: (value: CoderReasoningEffort) => void;
+  onBeforeSubmitPrompt?: () => void;
   onSubmitPrompt?: () => void;
   prompt: string;
   selectedPermissionMode?: CoderPermissionMode;
@@ -57,6 +59,7 @@ export function Composer({
         onSelectModel={onSelectModel}
         onSelectPermissionMode={onSelectPermissionMode}
         onSelectReasoningEffort={onSelectReasoningEffort}
+        onBeforeSubmit={onBeforeSubmitPrompt}
         onSubmit={onSubmitPrompt}
         prompt={prompt}
         selectedPermissionMode={selectedPermissionMode}

@@ -58,7 +58,8 @@ export const codexCommandActionSchema = z.object({
 export const codexFileUpdateChangeSchema = z.object({
   path: z.string(),
   kind: fileChangeKindSchema.optional(),
-  diff: z.string().optional()
+  diff: z.string().optional(),
+  content: z.string().optional()
 }).passthrough();
 
 export const knownThreadItemSchema = z.discriminatedUnion("type", [

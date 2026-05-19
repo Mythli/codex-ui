@@ -3,15 +3,13 @@ import { Group, Panel, Separator } from "react-resizable-panels";
 import { FiMenu } from "react-icons/fi";
 import { Button } from "../../common";
 import type { MarkdownComponents } from "../../common";
-import {
-  ChatSwitcher,
-  type CoderSwitcherProject
-} from "../CoderGit/ChatSwitcher";
+import { ChatSwitcher } from "../CoderNavigation/ChatSwitcher";
 import { CoderSidebar } from "./Sidebar";
 import type { PreviewViewport } from "./PreviewFrame";
 import { PreviewPanel } from "./PreviewPanel";
 import type { CoderShellViewMode } from "./TopBar";
 import type {
+  ChatPaneState,
   CoderChatItem,
   CoderComposerAttachment,
   CoderContextUsage,
@@ -21,7 +19,6 @@ import type {
   CoderProjectItem,
   CoderReasoningEffort
 } from "../CoderCore/types";
-import type { ChatPaneState } from "../CoderCore/store/derivedState";
 import styles from "./CoderShell.module.css";
 
 export type { CoderChatItem, CoderModelItem, CoderProjectChatGroup, CoderProjectItem };
@@ -50,6 +47,7 @@ export function CoderShell({
   onSelectModel,
   onSelectPermissionMode,
   onSelectReasoningEffort,
+  onBeforeSubmitPrompt,
   onSubmitPrompt,
   previewUrl,
   prompt,
@@ -81,6 +79,7 @@ export function CoderShell({
   onSelectModel: (id: string) => void;
   onSelectPermissionMode?: (value: CoderPermissionMode) => void;
   onSelectReasoningEffort: (value: CoderReasoningEffort) => void;
+  onBeforeSubmitPrompt?: () => void;
   onSubmitPrompt?: () => void;
   previewUrl?: string;
   prompt: string;
@@ -98,6 +97,7 @@ export function CoderShell({
   const [viewMode, setViewMode] = useState<CoderShellViewMode>(initialViewMode);
   const [previewViewport, setPreviewViewport] = useState<PreviewViewport>("desktop");
   const [previewReloadKey, setPreviewReloadKey] = useState(0);
+  const [hasHydrated, setHasHydrated] = useState(false);
   const closeTimerRef = useRef<number | undefined>(undefined);
 
   const openSwitcher = useCallback(() => {
@@ -123,6 +123,10 @@ export function CoderShell({
       closeTimerRef.current = undefined;
     }, SWITCHER_ANIMATION_MS);
   }, [isSwitcherClosing, isSwitcherOpen]);
+
+  useEffect(() => {
+    setHasHydrated(true);
+  }, []);
 
   useEffect(() => {
     if (!isSwitcherOpen) {
@@ -164,6 +168,7 @@ export function CoderShell({
       onSelectModel={onSelectModel}
       onSelectPermissionMode={onSelectPermissionMode}
       onSelectReasoningEffort={onSelectReasoningEffort}
+      onBeforeSubmitPrompt={onBeforeSubmitPrompt}
       onSubmitPrompt={onSubmitPrompt}
       onToggleSwitcher={() => {
         if (isSwitcherOpen && !isSwitcherClosing) {
@@ -204,6 +209,8 @@ export function CoderShell({
       aria-label="Coder workspace"
       className={styles.shell}
       data-current-chat-id={currentChatId}
+      data-current-project-id={project.id}
+      data-hydrated={hasHydrated ? "true" : undefined}
       data-testid="coder-shell"
     >
       {hasOpenedSwitcher ? (

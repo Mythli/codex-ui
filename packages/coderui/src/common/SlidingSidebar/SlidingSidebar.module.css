@@ -1,0 +1,78 @@
+.root {
+  inset: 0;
+  pointer-events: none;
+  position: fixed;
+  z-index: var(--coder-z-overlay);
+}
+
+.scrim {
+  background: var(--coder-scrim);
+  border: 0;
+  cursor: default;
+  inset: 0;
+  opacity: 1;
+  padding: 0;
+  pointer-events: auto;
+  position: absolute;
+}
+
+.panel {
+  background: var(--coder-main-surface);
+  box-shadow: var(--coder-shadow-xl);
+  color: var(--coder-text);
+  height: 100%;
+  max-width: 100vw;
+  min-width: 0;
+  pointer-events: auto;
+  position: absolute;
+  top: 0;
+  width: min(760px, 50vw);
+}
+
+.panel[data-side="right"] {
+  animation: slideInRight 180ms ease-out;
+  border-left: 1px solid var(--coder-border);
+  right: 0;
+}
+
+.panel[data-side="left"] {
+  animation: slideInLeft 180ms ease-out;
+  border-right: 1px solid var(--coder-border);
+  left: 0;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(24px);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-24px);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+@media (max-width: 900px) {
+  .scrim {
+    background: var(--coder-scrim-strong);
+  }
+
+  .panel {
+    width: min(100vw, 620px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel[data-side] {
+    animation: none;
+  }
+}

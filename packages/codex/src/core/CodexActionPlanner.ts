@@ -342,6 +342,28 @@ export function normalizeCodexUIMessageRequest(input: CodexUIMessageRequest): Co
   return input;
 }
 
+export function createCodexTurnStartRequestParams(input: {
+  activeThreadId: string;
+  cwd?: string;
+  defaults?: CodexUIRuntimeDefaults;
+  input: CodexUIMessageInput;
+  model?: MessageRequest["model"] | null;
+  reasoningEffort?: MessageRequest["reasoningEffort"] | null;
+  sandbox?: MessageRequest["sandbox"];
+  approvalPolicy?: MessageRequest["approvalPolicy"];
+}): CodexRequestParams<"turn/start"> {
+  const cwd = input.cwd ?? input.defaults?.cwd ?? currentCwd();
+  return {
+    threadId: input.activeThreadId,
+    input: parseCodexUIMessageInput(input.input),
+    cwd,
+    approvalPolicy: input.approvalPolicy ?? input.defaults?.approvalPolicy ?? "never",
+    sandboxPolicy: toSandboxPolicy(input.sandbox ?? input.defaults?.sandbox ?? "read-only", cwd),
+    model: input.model ?? input.defaults?.model ?? null,
+    effort: input.reasoningEffort ?? input.defaults?.reasoningEffort ?? "medium"
+  };
+}
+
 export function currentCwd(): string {
   const maybeProcess = (globalThis as typeof globalThis & {
     process?: { cwd?: () => string };
@@ -429,17 +451,12 @@ function turnStartStep(input: {
       if (!context.activeThreadId) {
         throw new Error("Cannot start a turn without a thread id");
       }
-      const defaults = input.defaults ?? context.defaults;
-      const cwd = input.cwd ?? context.cwd ?? defaults?.cwd ?? currentCwd();
-      return {
-        threadId: context.activeThreadId,
-        input: parseCodexUIMessageInput(input.input),
-        cwd,
-        approvalPolicy: input.approvalPolicy ?? defaults?.approvalPolicy ?? "never",
-        sandboxPolicy: toSandboxPolicy(input.sandbox ?? defaults?.sandbox ?? "read-only", cwd),
-        model: input.model ?? defaults?.model ?? null,
-        effort: input.reasoningEffort ?? defaults?.reasoningEffort ?? "medium"
-      };
+      return createCodexTurnStartRequestParams({
+        ...input,
+        activeThreadId: context.activeThreadId,
+        cwd: input.cwd ?? context.cwd,
+        defaults: input.defaults ?? context.defaults
+      });
     }
   };
 }

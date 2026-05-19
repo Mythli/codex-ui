@@ -14,29 +14,31 @@
     "dev:tail": "node scripts/dev-server.mjs tail",
     "dev:attach": "node scripts/dev-server.mjs attach",
     "build": "vite build",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsgo --noEmit",
+    "typecheck:tsc": "tsc --noEmit",
     "test:e2e:click": "node e2e/click/run-click-e2e.mjs",
     "test:e2e:click:raw": "playwright test -c e2e/click/playwright.config.ts"
   },
   "dependencies": {
+    "@floating-ui/react": "^0.27.19",
+    "@reduxjs/toolkit": "^2.12.0",
     "@tanstack/react-query": "^5.100.10",
     "@tanstack/react-router": "^1.169.2",
     "@tanstack/react-start": "^1.167.65",
-    "@floating-ui/react": "^0.27.19",
     "@taylordb/coderui": "workspace:*",
     "@taylordb/codex": "workspace:*",
-    "@taylordb/git-observer": "workspace:^",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hotkeys-hook": "^5.3.2",
     "react-markdown": "^10.1.0",
+    "react-redux": "^9.3.0",
     "react-resizable-panels": "^4.11.1",
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3",
-    "ws": "^8.20.1",
-    "zustand": "^5.0.13"
+    "ws": "^8.20.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "@tanstack/react-router-devtools": "^1.166.13",
     "@tanstack/react-start-plugin": "^1.131.50",
     "@types/node": "^25.0.1",
@@ -44,7 +46,6 @@
     "@types/react-dom": "^19.0.3",
     "@types/ws": "^8.18.1",
     "@vitejs/plugin-react": "^6.0.1",
-    "@playwright/test": "^1.57.0",
     "typescript": "^6.0.2",
     "vite": "^8.0.0"
   }

@@ -1,14 +1,8 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import type { GitClient } from "@taylordb/git-observer";
 import { createContext, type ReactNode, useContext, useMemo, useState } from "react";
 import type { MarkdownComponents } from "../common";
-import type { CoderRuntimeAdapter } from "../features/CoderCore/types";
 
 export type CoderUIConfig = {
-  adapters?: {
-    coder?: CoderRuntimeAdapter;
-    git?: GitClient;
-  };
   markdownComponents?: MarkdownComponents;
 };
 
@@ -26,12 +20,10 @@ export function requireCoderUIDependency<T>(value: T | undefined, label: string)
 }
 
 export function CoderUIProvider({
-  adapters,
   children,
   markdownComponents,
   queryClient
 }: {
-  adapters?: CoderUIConfig["adapters"];
   children: ReactNode;
   markdownComponents?: MarkdownComponents;
   queryClient?: QueryClient;
@@ -52,16 +44,10 @@ export function CoderUIProvider({
 
   const value = useMemo<CoderUIConfig>(
     () => ({
-      adapters: {
-        ...(parentConfig.adapters ?? {}),
-        ...(adapters ?? {})
-      },
       markdownComponents: markdownComponents ?? parentConfig.markdownComponents
     }),
     [
-      adapters,
       markdownComponents,
-      parentConfig.adapters,
       parentConfig.markdownComponents
     ]
   );

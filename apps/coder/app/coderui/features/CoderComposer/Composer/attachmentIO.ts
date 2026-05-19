@@ -46,6 +46,15 @@ async function readAttachment(file: File): Promise<CoderComposerAttachment> {
   const uploaded = await uploadAttachment(file);
   const isImage = isImageMime(file.type);
   const dataUrl = isImage ? await readFileAsDataUrl(file) : undefined;
+  const asset = uploaded.asset?.url && uploaded.asset.kind
+    ? {
+      url: uploaded.asset.url,
+      kind: uploaded.asset.kind,
+      mimeType: uploaded.asset.mimeType,
+      originalPath: uploaded.asset.originalPath,
+      sizeBytes: uploaded.asset.sizeBytes
+    }
+    : undefined;
   return {
     id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
     kind: isImage ? "image" : "file",
@@ -55,7 +64,9 @@ async function readAttachment(file: File): Promise<CoderComposerAttachment> {
     path: uploaded.path,
     assetUrl: uploaded.asset?.url,
     dataUrl,
-    input: uploaded.input
+    input: uploaded.input && asset
+      ? { ...uploaded.input, asset }
+      : uploaded.input
   };
 }
 
@@ -79,7 +90,9 @@ async function uploadAttachment(file: File): Promise<{
   path: string;
   asset?: {
     url?: string;
+    kind?: "file" | "bytes";
     mimeType?: string;
+    originalPath?: string;
     sizeBytes?: number;
   };
 }> {
@@ -99,7 +112,9 @@ async function uploadAttachment(file: File): Promise<{
     path?: string;
     asset?: {
       url?: string;
+      kind?: "file" | "bytes";
       mimeType?: string;
+      originalPath?: string;
       sizeBytes?: number;
     };
   };

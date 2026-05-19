@@ -2,6 +2,7 @@ import type { Namespace, Socket } from "socket.io";
 import {
   AppServerClient,
   parseCodexRequestParams,
+  type CodexProtocolMetadata,
   type CodexRequestMethod,
   type CodexRequestParams,
   type CodexTransport
@@ -10,15 +11,13 @@ import {
   type CodexAssetRegistry
 } from "./middlewares/assets/index.js";
 import {
-  createAssetReplacementMiddleware,
-  createLocalFileReadMiddleware,
-  createTrafficMeasurementMiddleware
-} from "./middlewares/index.js";
-import { createCodexMiddlewareTransport } from "./createCodexMiddlewareTransport.js";
-import type { CodexProtocolResponse } from "@taylordb/codex/protocol";
+  createAppCodexMiddlewareTransport,
+  getSharedCodexBackend
+} from "./codex-backend.js";
 
 type SocketRequest = {
   method: string;
+  metadata?: CodexProtocolMetadata;
   params?: unknown;
   codexBin?: string;
 };
@@ -35,7 +34,6 @@ const slowRequestMs = 500;
 const socketRequestTimeoutMs = 12_000;
 const slowNotifyMs = 1_000;
 const largeOutgoingPacketBytes = 1_000_000;
-const healthCheckIntervalMs = 10_000;
 
 export type AppCodexSocketServerOptions = {
   assets: CodexAssetRegistry;
@@ -180,14 +178,18 @@ export function attachAppCodexNamespace(
 
 export class AppCodexSocketServer {
   readonly sessions: AppCodexSessionRegistry;
-  private readonly liveBackend: CodexBackendSupervisor;
+  private readonly liveBackend: CodexTransport & {
+    ensureReady(reason?: string): Promise<CodexTransport>;
+    shutdown(): void;
+    start(): void;
+  };
 
   constructor(
     private readonly namespace: Namespace,
     private readonly options: AppCodexSocketServerOptions
   ) {
     this.sessions = options.sessions ?? new AppCodexSessionRegistry();
-    this.liveBackend = new CodexBackendSupervisor({ assets: options.assets });
+    this.liveBackend = getSharedCodexBackend(options.assets);
   }
 
   attach(): void {
@@ -294,7 +296,7 @@ export class AppCodexSocketServer {
 
     const transport = await this.ensureBackend(session, request.codexBin);
     const method = request.method as CodexRequestMethod;
-    return transport.request(method, requestParams(method, request.params));
+    return transport.request(method, requestParams(method, request.params), { metadata: request.metadata });
   }
 
   private async handleNotify(session: AppCodexSessionRecord, request: SocketRequest): Promise<void> {
@@ -335,222 +337,6 @@ export class AppCodexSocketServer {
     await initializePromise;
     return transport;
   }
-}
-
-type SupervisedBackend = {
-  client: AppServerClient & {
-    requestInternal?: AppServerClient["request"];
-  };
-  transport: CodexTransport;
-  unsubscribeDiagnostic: () => void;
-  unsubscribeTraffic: () => void;
-};
-
-class CodexBackendSupervisor implements CodexTransport {
-  private backend?: SupervisedBackend;
-  private healthTimer?: ReturnType<typeof setInterval>;
-  private readyPromise?: Promise<CodexTransport>;
-  private restarting = false;
-  private shuttingDown = false;
-  private readonly diagnosticListeners = new Set<(text: string) => void>();
-  private readonly trafficListeners = new Set<(traffic: Parameters<CodexTransport["onTraffic"]>[0] extends (traffic: infer T) => void ? T : never) => void>();
-
-  constructor(private readonly options: { assets: CodexAssetRegistry }) {}
-
-  start(): void {
-    void this.ensureReady("startup");
-    if (!this.healthTimer) {
-      this.healthTimer = setInterval(() => {
-        void this.checkHealth();
-      }, healthCheckIntervalMs);
-      unrefTimer(this.healthTimer);
-    }
-  }
-
-  async ensureReady(reason = "request"): Promise<CodexTransport> {
-    if (this.backend && !this.restarting) {
-      return this;
-    }
-    this.readyPromise ??= this.startBackend(reason).finally(() => {
-      this.readyPromise = undefined;
-    });
-    await this.readyPromise;
-    return this;
-  }
-
-  async request<M extends CodexRequestMethod>(method: M, params: CodexRequestParams<M>): Promise<CodexProtocolResponse<M>> {
-    await this.ensureReady("request");
-    if (!this.backend) {
-      throw new Error("Codex backend is not ready.");
-    }
-    return this.backend.transport.request(method, params);
-  }
-
-  async notify<M extends CodexRequestMethod>(method: M, params?: CodexRequestParams<M>): Promise<void> {
-    await this.ensureReady("notify");
-    if (!this.backend) {
-      throw new Error("Codex backend is not ready.");
-    }
-    await this.backend.transport.notify(method, params);
-  }
-
-  onTraffic(listener: Parameters<CodexTransport["onTraffic"]>[0]): () => void {
-    this.trafficListeners.add(listener);
-    return () => {
-      this.trafficListeners.delete(listener);
-    };
-  }
-
-  onDiagnostic(listener: (text: string) => void): () => void {
-    this.diagnosticListeners.add(listener);
-    return () => {
-      this.diagnosticListeners.delete(listener);
-    };
-  }
-
-  close(): void {
-    // Socket/session close must not stop the supervised process for the whole app.
-  }
-
-  shutdown(): void {
-    this.shuttingDown = true;
-    if (this.healthTimer) {
-      clearInterval(this.healthTimer);
-      this.healthTimer = undefined;
-    }
-    this.disposeBackend("shutdown");
-  }
-
-  private async startBackend(reason: string): Promise<CodexTransport> {
-    this.restarting = true;
-    this.disposeBackend(reason);
-    const startedAt = Date.now();
-    logBackendEvent("codex:restart:start", { reason });
-
-    const client = new AppServerClient() as SupervisedBackend["client"];
-    const transport = createAppCodexMiddlewareTransport(client, {
-      assets: this.options.assets,
-      hydrateRequestResponses: false,
-      onDiagnostic: (text) => this.emitDiagnostic(text)
-    });
-    const backend: SupervisedBackend = {
-      client,
-      transport,
-      unsubscribeDiagnostic: transport.onDiagnostic((text) => this.emitDiagnostic(text)),
-      unsubscribeTraffic: transport.onTraffic((traffic) => this.emitTraffic(traffic))
-    };
-
-    void client.waitForClose().then(() => {
-      logBackendEvent("codex:closed", {
-        exitCode: client.exitCode,
-        signal: client.signal
-      });
-      if (this.backend === backend) {
-        this.disposeBackend("closed");
-        if (!this.shuttingDown) {
-          void this.ensureReady("closed");
-        }
-      }
-    });
-
-    try {
-      await client.initialize();
-      this.backend = backend;
-      this.restarting = false;
-      logBackendEvent("codex:restart:ready", {
-        durationMs: Date.now() - startedAt,
-        reason
-      });
-      return this;
-    } catch (error) {
-      this.restarting = false;
-      backend.unsubscribeDiagnostic();
-      backend.unsubscribeTraffic();
-      backend.transport.close();
-      logBackendEvent("codex:restart:error", {
-        durationMs: Date.now() - startedAt,
-        error: serializeError(error),
-        reason
-      });
-      throw error;
-    }
-  }
-
-  private async checkHealth(): Promise<void> {
-    if (!this.backend || this.restarting || this.shuttingDown) {
-      return;
-    }
-    const startedAt = Date.now();
-    try {
-      const requestInternal = this.backend.client.requestInternal?.bind(this.backend.client)
-        ?? this.backend.client.request.bind(this.backend.client);
-      await requestInternal("model/list", { limit: 1, includeHidden: false });
-      logBackendEvent("codex:health:ok", {
-        durationMs: Date.now() - startedAt
-      });
-    } catch (error) {
-      logBackendEvent("codex:health:failed", {
-        durationMs: Date.now() - startedAt,
-        error: serializeError(error)
-      });
-      if (!this.shuttingDown) {
-        this.disposeBackend("health-failed");
-        void this.ensureReady("health-failed");
-      }
-    }
-  }
-
-  private disposeBackend(reason: string): void {
-    const backend = this.backend;
-    this.backend = undefined;
-    if (!backend) {
-      return;
-    }
-    backend.unsubscribeDiagnostic();
-    backend.unsubscribeTraffic();
-    backend.transport.close();
-    logBackendEvent("codex:disposed", { reason });
-  }
-
-  private emitTraffic(traffic: Parameters<CodexTransport["onTraffic"]>[0] extends (traffic: infer T) => void ? T : never): void {
-    for (const listener of this.trafficListeners) {
-      listener(traffic);
-    }
-  }
-
-  private emitDiagnostic(text: string): void {
-    for (const listener of this.diagnosticListeners) {
-      listener(text);
-    }
-  }
-}
-
-function createAppCodexMiddlewareTransport(
-  client: AppServerClient,
-  options: {
-    assets: CodexAssetRegistry;
-    hydrateRequestResponses?: boolean;
-    onDiagnostic?: (text: string) => void;
-  }
-): CodexTransport {
-  return createCodexMiddlewareTransport(
-    client,
-    {
-      hydrateRequestResponses: options.hydrateRequestResponses,
-      onDiagnostic: options.onDiagnostic
-    },
-    createLocalFileReadMiddleware({
-      transport: client,
-      onDiagnostic: options.onDiagnostic
-    }),
-    createAssetReplacementMiddleware({
-      assets: options.assets,
-      onDiagnostic: options.onDiagnostic
-    }),
-    createTrafficMeasurementMiddleware({
-      onDiagnostic: options.onDiagnostic
-    })
-  );
 }
 
 function socketAuth(socket: Socket): Record<string, unknown> {
@@ -652,12 +438,6 @@ function withTimeout<T>(
         clearTimeout(timeout);
       }
     });
-}
-
-function unrefTimer(timer: ReturnType<typeof setTimeout> | ReturnType<typeof setInterval>): void {
-  if (typeof timer === "object" && "unref" in timer && typeof timer.unref === "function") {
-    timer.unref();
-  }
 }
 
 function safeStringify(value: unknown): string {

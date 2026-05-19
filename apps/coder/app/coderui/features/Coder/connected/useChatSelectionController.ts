@@ -1,14 +1,13 @@
 import { useCallback, useEffect, useRef } from "react";
-import type { CodexRuntimeState, CodexThreadIndexState } from "@taylordb/codex";
-import type { CoderProjectChatGroup, CoderState } from "../../CoderCore/types";
-import { shouldAutoSelectFirstChat } from "../../CoderCore/store/hydrationGuards";
+import type { CodexThreadIndexState } from "@taylordb/codex";
+import type { CoderProjectChatGroup, CoderSelection } from "../../CoderCore/types";
+import { shouldAutoSelectFirstChat } from "../../../../features/Coder/store/selectors/hydrationGuards";
 
 export type ChatSelectionControllerInput = {
   routeChatId?: string;
   chatGroups: CoderProjectChatGroup[];
   isRunning: boolean;
-  runtimeState: CodexRuntimeState;
-  selection: CoderState["selection"];
+  selection: CoderSelection;
   threadIndexStatus: CodexThreadIndexState["status"];
   newChat: (projectId?: string) => void;
   onNewChatRoute?: () => void;
@@ -27,7 +26,6 @@ export function useChatSelectionController({
   routeChatId,
   chatGroups,
   isRunning,
-  runtimeState,
   selection,
   threadIndexStatus,
   newChat,
@@ -38,24 +36,6 @@ export function useChatSelectionController({
 }: ChatSelectionControllerInput): ChatSelectionController {
   const appliedRouteChatIdRef = useRef<string | undefined>(undefined);
   const pendingRouteChatIdRef = useRef<string | undefined>(undefined);
-  const submittedDraftRef = useRef<{ draftId: string; previousThreadId?: string } | undefined>(undefined);
-
-  useEffect(() => {
-    const submittedDraft = submittedDraftRef.current;
-    if (
-      selection.kind !== "draft" ||
-      !runtimeState.threadId ||
-      submittedDraft?.draftId !== selection.draftId ||
-      runtimeState.threadId === submittedDraft.previousThreadId
-    ) {
-      return;
-    }
-
-    submittedDraftRef.current = undefined;
-    pendingRouteChatIdRef.current = runtimeState.threadId;
-    selectChat(runtimeState.threadId, selection.projectId);
-    onSelectChatRoute?.(runtimeState.threadId);
-  }, [onSelectChatRoute, runtimeState.threadId, selectChat, selection]);
 
   useEffect(() => {
     const firstChatGroup = chatGroups.find((group) => group.chats.length > 0);
@@ -120,7 +100,6 @@ export function useChatSelectionController({
   }, [chatGroups, isRunning, routeChatId, selectChat, selection, threadIndexStatus]);
 
   const createDraftChat = useCallback((projectId?: string) => {
-    submittedDraftRef.current = undefined;
     pendingRouteChatIdRef.current = undefined;
     newChat(projectId);
     onNewChatRoute?.();
@@ -135,17 +114,13 @@ export function useChatSelectionController({
   }, [onSelectChatRoute, selectChat]);
 
   const submitPromptFromSelection = useCallback(() => {
-    submittedDraftRef.current = selection.kind === "draft"
-      ? { draftId: selection.draftId, previousThreadId: runtimeState.threadId }
-      : undefined;
     void submitPrompt().then((result) => {
       if (result?.createdThreadId) {
-        submittedDraftRef.current = undefined;
         pendingRouteChatIdRef.current = result.createdThreadId;
         onSelectChatRoute?.(result.createdThreadId);
       }
     });
-  }, [onSelectChatRoute, runtimeState.threadId, selection, submitPrompt]);
+  }, [onSelectChatRoute, submitPrompt]);
 
   return {
     createDraftChat,

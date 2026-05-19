@@ -1,5 +1,6 @@
 import {
   CodexTrafficPacket,
+  codexCanonicalRequestId,
   type CodexParsedThread,
   type CodexProtocolResponse,
   type CodexProtocolTraffic
@@ -28,6 +29,7 @@ export type CodexThreadIndexState = {
   status: CodexThreadIndexStatus;
   activeRequestIds: string[];
   threadsById: Record<string, CodexThreadIndexItem>;
+  threadIdsByTurnId: Record<string, string>;
   threadOrder: string[];
   projectsByCwd: Record<string, CodexProjectIndexItem>;
   projectOrder: string[];
@@ -40,6 +42,7 @@ export class CodexThreadIndexReducer {
       status: "idle",
       activeRequestIds: [],
       threadsById: {},
+      threadIdsByTurnId: {},
       threadOrder: [],
       projectsByCwd: {},
       projectOrder: []
@@ -56,7 +59,7 @@ export class CodexThreadIndexReducer {
       return {
         ...state,
         status: "loading",
-        activeRequestIds: rememberRequest(state.activeRequestIds, traffic.id),
+        activeRequestIds: rememberRequest(state.activeRequestIds, codexCanonicalRequestId(traffic)),
         error: undefined
       };
     }
@@ -66,7 +69,7 @@ export class CodexThreadIndexReducer {
       return finalizeState(mergeThreads({
         ...state,
         status: "ready",
-        activeRequestIds: forgetRequest(state.activeRequestIds, traffic.id),
+        activeRequestIds: forgetRequest(state.activeRequestIds, codexCanonicalRequestId(traffic)),
         error: undefined
       }, response.data ?? []));
     }
@@ -75,7 +78,7 @@ export class CodexThreadIndexReducer {
       return {
         ...state,
         status: "failed",
-        activeRequestIds: forgetRequest(state.activeRequestIds, traffic.id),
+        activeRequestIds: forgetRequest(state.activeRequestIds, codexCanonicalRequestId(traffic)),
         error: errorMessage(traffic.error)
       };
     }
@@ -129,14 +132,16 @@ export class CodexThreadIndexReducer {
       if (!threadId) {
         return state;
       }
-      return finalizeState(patchOrCreateThread(state, threadId, {
+      const turnId = stringValue(event.params.turnId) ?? packet.turnId;
+      return finalizeState(rememberTurnThreadId(patchOrCreateThread(state, threadId, {
         activity: "running",
         updatedAt: timestampIso(traffic.timestampMs ?? Date.now())
-      }));
+      }), turnId, threadId));
     }
 
     if (method === "turn/completed") {
-      const threadId = stringValue(event.params.threadId) ?? packet.threadId;
+      const turnId = stringValue(event.params.turnId) ?? packet.turnId;
+      const threadId = stringValue(event.params.threadId) ?? packet.threadId ?? threadIdForTurn(state, turnId);
       return threadId ? finalizeState(patchOrCreateThread(state, threadId, { activity: "none" })) : state;
     }
 
@@ -241,6 +246,30 @@ function patchOrCreateThread(
   };
 }
 
+function rememberTurnThreadId(
+  state: CodexThreadIndexState,
+  turnId: string | undefined,
+  threadId: string
+): CodexThreadIndexState {
+  if (!turnId || state.threadIdsByTurnId?.[turnId] === threadId) {
+    return state;
+  }
+  return {
+    ...state,
+    threadIdsByTurnId: {
+      ...state.threadIdsByTurnId,
+      [turnId]: threadId
+    }
+  };
+}
+
+function threadIdForTurn(
+  state: CodexThreadIndexState,
+  turnId: string | undefined
+): string | undefined {
+  return turnId ? state.threadIdsByTurnId?.[turnId] : undefined;
+}
+
 function removeThread(state: CodexThreadIndexState, threadId: string): CodexThreadIndexState {
   const { [threadId]: _removed, ...threadsById } = state.threadsById;
   return {
@@ -280,6 +309,7 @@ function finalizeState(state: CodexThreadIndexState): CodexThreadIndexState {
 
   return {
     ...state,
+    threadIdsByTurnId: state.threadIdsByTurnId ?? {},
     threadOrder: sortedThreadOrder,
     projectsByCwd,
     projectOrder

@@ -31,9 +31,16 @@
     "codex:e2e:capture": "pnpm --filter @taylordb/codex test:e2e:capture",
     "test:e2e:click": "pnpm --filter @taylordb/coder test:e2e:click",
     "typecheck": "pnpm -r --if-present typecheck",
+    "typecheck:tsc": "pnpm -r --if-present typecheck:tsc",
+    "lint": "oxlint apps packages",
+    "lint:fix": "oxlint --fix apps packages",
     "test": "pnpm --filter @taylordb/codex test"
   },
   "devDependencies": {
+    "@tsdown/css": "^0.22.0",
+    "@typescript/native-preview": "7.0.0-dev.20260519.1",
+    "oxlint": "^1.66.0",
+    "tsdown": "^0.22.0",
     "typescript": "^6.0.2"
   }
 }

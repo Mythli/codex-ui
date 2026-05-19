@@ -13,7 +13,26 @@ export type ClickSwitcherRow = ClickThread & {
   isUnread: boolean;
 };
 
+type PromptTurnVisibilityResult = {
+  ok: boolean;
+  elapsedMs?: number;
+  userMessageElapsedMs?: number;
+  workBlockElapsedMs?: number;
+  reason?: string;
+  location: string;
+  currentChatId?: string;
+  matchMode: "exact" | "contains";
+  promptValue: string;
+  targetText: string;
+  timeoutMs: number;
+  transcriptText: string;
+  userMessageTexts: string[];
+  workBlockTexts: string[];
+};
+
 export class ClickAppPage {
+  private draftPreviousThreadId?: string;
+
   constructor(
     private readonly page: Page,
     private readonly testInfo?: TestInfo
@@ -97,12 +116,19 @@ export class ClickAppPage {
   async clickVisibleNewChatButton(timeoutMs = 10_000): Promise<void> {
     const deadline = Date.now() + timeoutMs;
     while (Date.now() < deadline) {
+      const previousThreadId = await this.selectedThreadId().catch(() => undefined);
+      const currentProjectName = await this.page.getByTestId("current-chat-heading")
+        .getAttribute("data-project-name")
+        .catch(() => undefined);
       await this.page.getByTestId("new-chat-button").click({ timeout: 2_000 });
-      const projectOption = this.page.getByRole("menuitem").first();
+      const projectOption = currentProjectName
+        ? this.page.getByRole("menuitem", { name: currentProjectName }).first()
+        : this.page.getByRole("menuitem").first();
       if (await projectOption.isVisible({ timeout: 1_000 }).catch(() => false)) {
         await projectOption.click({ timeout: 2_000 });
       }
       if (await this.isDraftHomeVisible()) {
+        this.draftPreviousThreadId = previousThreadId;
         return;
       }
       await this.page.waitForTimeout(100);
@@ -118,27 +144,355 @@ export class ClickAppPage {
     await expect(this.page.getByTestId("prompt-input")).toHaveValue("", { timeout: 10_000 });
   }
 
+  async sendPlainPromptAndExpectUserMessageWithin(text: string, timeoutMs = 100): Promise<void> {
+    await this.sendPromptAndExpectTurnWithin(text, {
+      expectNoComposerAttachmentsBeforeSend: true,
+      matchMode: "exact",
+      timeoutMs
+    });
+  }
+
+  async sendPromptAndExpectTurnWithin(
+    text: string,
+    options: {
+      expectNoComposerAttachmentsBeforeSend?: boolean;
+      matchMode?: "exact" | "contains";
+      timeoutMs?: number;
+    } = {}
+  ): Promise<void> {
+    const timeoutMs = options.timeoutMs ?? 100;
+    const matchMode = options.matchMode ?? "exact";
+    const promptInput = this.page.getByTestId("prompt-input");
+    const sendButton = this.page.getByTestId("send-prompt-button");
+
+    if (options.expectNoComposerAttachmentsBeforeSend ?? true) {
+      await expect(this.page.getByTestId("composer-attachments")).toHaveCount(0);
+    }
+    await promptInput.fill(text);
+    await expect(sendButton).toBeEnabled({ timeout: 10_000 });
+
+    const watcherId = `prompt-turn-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    await this.page.evaluate(({ watcherId, text, timeoutMs, matchMode }) => {
+      const browserWindow = window as typeof window & {
+        __codexPromptTurnWatchers?: Record<string, Promise<PromptTurnVisibilityResult>>;
+      };
+      browserWindow.__codexPromptTurnWatchers ??= {};
+
+      const normalize = (value: string) => value.replace(/\s+/g, " ").trim();
+      const targetText = normalize(text);
+      const userMessageSelector = '[data-testid="transcript-user-message"]';
+      const workBlockSelector = '[data-testid="transcript-work-block"][data-row-state="working"]';
+
+      const isVisible = (element: Element) => {
+        const style = window.getComputedStyle(element);
+        const rect = element.getBoundingClientRect();
+        return style.visibility !== "hidden" &&
+          style.display !== "none" &&
+          Number(style.opacity) !== 0 &&
+          rect.width > 0 &&
+          rect.height > 0;
+      };
+
+      const visibleTexts = (selector: string) => [...document.querySelectorAll(selector)]
+        .filter(isVisible)
+        .map((element) => element.textContent?.trim() ?? "");
+
+      const visibleUserMessageTexts = () => visibleTexts(userMessageSelector);
+      const visibleWorkBlockTexts = () => visibleTexts(workBlockSelector);
+
+      const diagnostics = (reason: string, startedAt?: number): PromptTurnVisibilityResult => ({
+        ok: false,
+        elapsedMs: startedAt === undefined ? undefined : performance.now() - startedAt,
+        reason,
+        location: window.location.href,
+        currentChatId: document.querySelector("[data-testid='coder-shell']")?.getAttribute("data-current-chat-id") ?? undefined,
+        matchMode,
+        promptValue: (document.querySelector("[data-testid='prompt-input']") as HTMLTextAreaElement | null)?.value ?? "",
+        targetText: text,
+        timeoutMs,
+        transcriptText: document.querySelector("[data-testid='chat-transcript']")?.textContent?.trim() ?? "",
+        userMessageTexts: visibleUserMessageTexts(),
+        workBlockTexts: visibleWorkBlockTexts()
+      });
+
+      browserWindow.__codexPromptTurnWatchers[watcherId] = new Promise<PromptTurnVisibilityResult>((resolve) => {
+        const button = document.querySelector("[data-testid='send-prompt-button']");
+        if (!button) {
+          resolve(diagnostics("send button was not found"));
+          return;
+        }
+
+        let startedAt: number | undefined;
+        let userMessageElapsedMs: number | undefined;
+        let workBlockElapsedMs: number | undefined;
+        let observer: MutationObserver | undefined;
+        let timeout: number | undefined;
+        let clickTimeout: number | undefined;
+        let settled = false;
+
+        const cleanup = () => {
+          observer?.disconnect();
+          if (timeout !== undefined) {
+            window.clearTimeout(timeout);
+          }
+          if (clickTimeout !== undefined) {
+            window.clearTimeout(clickTimeout);
+          }
+          button.removeEventListener("click", handleClick, { capture: true });
+        };
+
+        const finish = (result: PromptTurnVisibilityResult) => {
+          if (settled) {
+            return;
+          }
+          settled = true;
+          cleanup();
+          resolve(result);
+        };
+
+        const hasVisibleMatchingUserMessage = () => visibleUserMessageTexts()
+          .some((value) => {
+            const normalized = normalize(value);
+            return matchMode === "contains"
+              ? normalized.includes(targetText)
+              : normalized === targetText;
+          });
+
+        const hasVisibleRunningWorkBlock = () => visibleWorkBlockTexts().length > 0;
+
+        const check = () => {
+          if (startedAt === undefined) {
+            return;
+          }
+          if (userMessageElapsedMs === undefined && hasVisibleMatchingUserMessage()) {
+            userMessageElapsedMs = performance.now() - startedAt;
+          }
+          if (workBlockElapsedMs === undefined && hasVisibleRunningWorkBlock()) {
+            workBlockElapsedMs = performance.now() - startedAt;
+          }
+          if (userMessageElapsedMs !== undefined && workBlockElapsedMs !== undefined) {
+            finish({
+              ok: true,
+              elapsedMs: Math.max(userMessageElapsedMs, workBlockElapsedMs),
+              userMessageElapsedMs,
+              workBlockElapsedMs,
+              location: window.location.href,
+              currentChatId: document.querySelector("[data-testid='coder-shell']")?.getAttribute("data-current-chat-id") ?? undefined,
+              matchMode,
+              promptValue: (document.querySelector("[data-testid='prompt-input']") as HTMLTextAreaElement | null)?.value ?? "",
+              targetText: text,
+              timeoutMs,
+              transcriptText: document.querySelector("[data-testid='chat-transcript']")?.textContent?.trim() ?? "",
+              userMessageTexts: visibleUserMessageTexts(),
+              workBlockTexts: visibleWorkBlockTexts()
+            });
+          }
+        };
+
+        function handleClick() {
+          startedAt = performance.now();
+          observer = new MutationObserver(check);
+          observer.observe(document.body, {
+            attributes: true,
+            attributeFilter: ["data-row-state", "data-testid", "style", "class"],
+            characterData: true,
+            childList: true,
+            subtree: true
+          });
+          check();
+          timeout = window.setTimeout(() => {
+            finish({
+              ...diagnostics("user message and running work block were not both visible before timeout", startedAt),
+              userMessageElapsedMs,
+              workBlockElapsedMs
+            });
+          }, timeoutMs);
+        }
+
+        button.addEventListener("click", handleClick, { once: true, capture: true });
+        clickTimeout = window.setTimeout(() => {
+          finish(diagnostics("send button click was not observed"));
+        }, 10_000);
+      });
+    }, { watcherId, text, timeoutMs, matchMode });
+
+    await sendButton.click();
+    const result = await this.page.evaluate(async (watcherId): Promise<PromptTurnVisibilityResult> => {
+      const browserWindow = window as typeof window & {
+        __codexPromptTurnWatchers?: Record<string, Promise<PromptTurnVisibilityResult>>;
+      };
+      const watcher = browserWindow.__codexPromptTurnWatchers?.[watcherId];
+      if (!watcher) {
+        throw new Error(`Prompt turn watcher ${watcherId} was not registered.`);
+      }
+      try {
+        return await watcher;
+      } finally {
+        delete browserWindow.__codexPromptTurnWatchers?.[watcherId];
+      }
+    }, watcherId);
+
+    if (!result.ok) {
+      throw new Error(`Prompt turn was not visible within ${timeoutMs}ms: ${JSON.stringify(result, null, 2)}`);
+    }
+    if ((result.elapsedMs ?? Number.POSITIVE_INFINITY) > timeoutMs) {
+      throw new Error(`Prompt turn became visible after ${result.elapsedMs}ms, over ${timeoutMs}ms: ${JSON.stringify(result, null, 2)}`);
+    }
+
+    await expect(promptInput).toHaveValue("", { timeout: 10_000 });
+  }
+
+  async sendPromptWithFiles(text: string, filePaths: string[]): Promise<void> {
+    await this.page.getByTestId("composer-file-input").setInputFiles(filePaths);
+    await expect(this.page.getByTestId("composer-attachments").locator("img, [aria-hidden='true']").first())
+      .toBeVisible({ timeout: 10_000 });
+    await this.sendPromptAndExpectTurnWithin(text, {
+      expectNoComposerAttachmentsBeforeSend: false,
+      matchMode: "contains"
+    });
+    await expect(this.page.getByTestId("composer-attachments")).toHaveCount(0, { timeout: 10_000 });
+  }
+
   async waitForAssistantText(textOrPattern: string | RegExp, timeoutMs = 120_000): Promise<void> {
     const transcript = this.page.getByTestId("chat-transcript");
     await expect(transcript).toBeVisible({ timeout: timeoutMs });
     await expect(transcript).toContainText(textOrPattern, { timeout: timeoutMs });
   }
 
-  async currentThreadId(timeoutMs = 30_000): Promise<string> {
-    await this.page.waitForFunction(() => {
-      const routeThreadId = /\/chats\/[^/]+$/.test(window.location.pathname);
+  async expectUserMessageTextCount(
+    text: string,
+    expectedCount = 1,
+    options: { matchMode?: "exact" | "contains"; stableMs?: number; timeoutMs?: number } = {}
+  ): Promise<void> {
+    const matchMode = options.matchMode ?? "exact";
+    const timeoutMs = options.timeoutMs ?? 10_000;
+    const stableMs = options.stableMs ?? 0;
+    const normalize = (value: string) => value.replace(/\s+/g, " ").trim();
+    const targetText = normalize(text);
+    let lastTexts: string[] = [];
+
+    const matchingCount = async () => {
+      lastTexts = await this.visibleUserMessageTexts();
+      return lastTexts.filter((value) => {
+        const normalized = normalize(value);
+        return matchMode === "contains"
+          ? normalized.includes(targetText)
+          : normalized === targetText;
+      }).length;
+    };
+
+    await expect.poll(matchingCount, {
+      message: `expected ${expectedCount} visible user messages matching ${JSON.stringify(text)}; last texts: ${JSON.stringify(lastTexts)}`,
+      timeout: timeoutMs
+    }).toBe(expectedCount);
+
+    const deadline = Date.now() + stableMs;
+    while (Date.now() < deadline) {
+      const count = await matchingCount();
+      if (count !== expectedCount) {
+        throw new Error([
+          `Expected ${expectedCount} visible user messages matching ${JSON.stringify(text)} during ${stableMs}ms stability window, got ${count}.`,
+          `Match mode: ${matchMode}.`,
+          `Visible user messages: ${JSON.stringify(lastTexts)}`
+        ].join(" "));
+      }
+      await this.page.waitForTimeout(250);
+    }
+  }
+
+  async expectUserMessageSentinelOnce(
+    sentinel: string,
+    options: { stableMs?: number; timeoutMs?: number } = {}
+  ): Promise<void> {
+    await this.expectUserMessageTextCount(sentinel, 1, {
+      matchMode: "contains",
+      stableMs: options.stableMs ?? 3_000,
+      timeoutMs: options.timeoutMs
+    });
+  }
+
+  async waitForRenderedTranscriptImage(timeoutMs = 30_000): Promise<void> {
+    const image = this.page.getByTestId("transcript-user-message").locator("img[alt='Attached image']").first();
+    await expect(image).toBeVisible({ timeout: timeoutMs });
+    await expect.poll(async () => image.evaluate((element) => {
+      if (!(element instanceof HTMLImageElement)) {
+        return false;
+      }
+      return element.complete && element.naturalWidth > 0 && element.naturalHeight > 0;
+    }), {
+      message: "attached transcript image should load with non-zero dimensions",
+      timeout: timeoutMs
+    }).toBe(true);
+  }
+
+  async currentThreadId(timeoutMs = 30_000, previousThreadId?: string): Promise<string> {
+    const ignoredThreadId = previousThreadId ?? this.draftPreviousThreadId;
+    await this.page.waitForFunction((previousId) => {
       const selectedThreadId = document.querySelector("[data-testid='coder-shell']")?.getAttribute("data-current-chat-id");
-      return Boolean(routeThreadId || selectedThreadId);
-    }, undefined, { timeout: timeoutMs });
-    const threadId = this.threadIdFromUrl() ?? await this.selectedThreadId();
+      const routeThreadId = window.location.pathname.match(/\/chats\/([^/]+)$/)?.[1];
+      return Boolean(
+        selectedThreadId &&
+        routeThreadId &&
+        selectedThreadId === routeThreadId &&
+        (!previousId || selectedThreadId !== previousId)
+      );
+    }, ignoredThreadId, { timeout: timeoutMs });
+    const threadId = await this.selectedThreadId();
     if (!threadId) {
       throw new Error(`Current page does not expose a thread id: ${this.page.url()}`);
+    }
+    if (threadId !== this.draftPreviousThreadId) {
+      this.draftPreviousThreadId = undefined;
     }
     return threadId;
   }
 
   async waitForRouteThreadId(threadId: string, timeoutMs = 30_000): Promise<void> {
     await this.page.waitForURL((url) => url.pathname.endsWith(`/chats/${threadId}`), { timeout: timeoutMs });
+  }
+
+  async expectHydratedWorkspace(expectedThreadId?: string): Promise<string> {
+    await this.page.getByTestId("coder-shell").waitFor({ timeout: 30_000 });
+    await expect(this.page.getByTestId("chat-home")).toHaveCount(0);
+    await expect(this.page.getByTestId("chat-empty")).toHaveCount(0);
+    await expect(this.page.getByTestId("chat-error")).toHaveCount(0);
+    await expect(this.page.getByTestId("chat-loading")).toHaveCount(0);
+    await expect(this.page.getByTestId("chat-transcript")).toBeVisible({ timeout: 30_000 });
+    await expect(this.page.getByTestId("model-control")).toBeVisible({ timeout: 10_000 });
+    await expect(this.page.getByTestId("model-control")).not.toHaveText(/^Model$/);
+    await expect(this.page.getByTestId("reasoning-control")).toBeVisible({ timeout: 10_000 });
+    await expect(this.page.getByTestId("prompt-input")).toBeVisible({ timeout: 10_000 });
+    const selectedThreadId = await this.selectedThreadId();
+    if (!selectedThreadId) {
+      throw new Error("Expected SSR hydrated workspace to expose data-current-chat-id.");
+    }
+    if (expectedThreadId && selectedThreadId !== expectedThreadId) {
+      throw new Error(`Expected selected thread ${expectedThreadId}, got ${selectedThreadId}.`);
+    }
+    return selectedThreadId;
+  }
+
+  async expectActiveSwitcherRowExpanded(threadId: string): Promise<void> {
+    await expect(this.page.getByTestId("coder-shell")).toHaveAttribute("data-hydrated", "true", { timeout: 30_000 });
+    await this.openSwitcherForInspection();
+    await this.page.locator(`[data-testid="chat-switcher-chat"][data-chat-id="${this.cssString(threadId)}"][aria-current="true"]`)
+      .waitFor({ timeout: 10_000 });
+    const state = await this.page.locator(`[data-testid="chat-switcher-chat"][data-chat-id="${this.cssString(threadId)}"]`).first()
+      .evaluate((row) => {
+        const project = row.closest("[data-testid='chat-switcher-project']");
+        const header = project?.querySelector("[role='button'][aria-expanded]");
+        const list = row.closest("[data-testid='chat-switcher-project-chats']");
+        return {
+          headerExpanded: header?.getAttribute("aria-expanded"),
+          listHidden: list?.hasAttribute("hidden") ?? null,
+          projectId: project?.getAttribute("data-project-id") ?? null,
+          rowAriaCurrent: row.getAttribute("aria-current")
+        };
+      });
+    if (state.rowAriaCurrent !== "true" || state.headerExpanded !== "true" || state.listHidden) {
+      throw new Error(`Active switcher row/project is not expanded: ${JSON.stringify(state)}`);
+    }
+    await this.closeSwitcher();
   }
 
   async openSwitcher(): Promise<void> {
@@ -255,6 +609,25 @@ export class ClickAppPage {
       });
     }
     return body;
+  }
+
+  private async openSwitcherForInspection(): Promise<void> {
+    await this.openSwitcherPanel();
+    await this.page.getByTestId("chat-switcher-groups").waitFor({ timeout: 30_000 });
+  }
+
+  private async visibleUserMessageTexts(): Promise<string[]> {
+    return this.page.locator('[data-testid="transcript-user-message"]').evaluateAll((elements) => elements
+      .filter((element) => {
+        const style = window.getComputedStyle(element);
+        const rect = element.getBoundingClientRect();
+        return style.visibility !== "hidden" &&
+          style.display !== "none" &&
+          Number(style.opacity) !== 0 &&
+          rect.width > 0 &&
+          rect.height > 0;
+      })
+      .map((element) => element.textContent?.trim() ?? ""));
   }
 
   private async openSwitcherPanel() {
@@ -584,11 +957,6 @@ export class ClickAppPage {
         hasReadyTranscript: Boolean(transcript && !emptyTranscript && !error)
       };
     });
-  }
-
-  private threadIdFromUrl(): string | undefined {
-    const match = /\/chats\/([^/]+)$/.exec(new URL(this.page.url()).pathname);
-    return match?.[1];
   }
 
   private async selectedThreadId(): Promise<string | undefined> {

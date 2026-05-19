@@ -102,11 +102,6 @@ const webSearchCallSchema = z.object({
   status: z.string().optional()
 }).passthrough();
 
-const functionCallArgumentsSchema = z.object({
-  cmd: z.string().optional(),
-  workdir: z.string().optional()
-}).passthrough();
-
 const eventAgentMessageSchema = z.object({
   type: z.literal("agent_message"),
   message: z.string().default(""),
@@ -478,6 +473,7 @@ function patchChangesByCallIdFromPayloads(payloads: readonly unknown[]): Map<str
           type: change.type,
           move_path: change.move_path ?? null
         },
+        content: change.content,
         diff: patchChangeDiff(change)
       }))
     });
