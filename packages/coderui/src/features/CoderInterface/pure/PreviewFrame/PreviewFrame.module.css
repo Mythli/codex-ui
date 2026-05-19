@@ -1,0 +1,100 @@
+.previewWrap {
+  background: var(--coder-workspace-bg);
+  display: grid;
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+  padding: 0;
+}
+
+.previewFrame {
+  background: var(--coder-surface);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.frameBody {
+  align-items: stretch;
+  background: var(--coder-preview);
+  color: var(--coder-text);
+  display: grid;
+  justify-items: center;
+  min-height: 0;
+  overflow: auto;
+  padding: 0;
+}
+
+.frameBodyWindowed {
+  background:
+    linear-gradient(45deg, var(--coder-surface-muted) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--coder-surface-muted) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--coder-surface-muted) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--coder-surface-muted) 75%);
+  background-color: var(--coder-bg);
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+  background-size: 16px 16px;
+  padding: var(--coder-space-2);
+}
+
+.viewport {
+  background: var(--coder-preview);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  display: grid;
+  height: 100%;
+  max-width: 100%;
+  min-height: 0;
+  overflow: hidden;
+  width: min(var(--preview-viewport-width), 100%);
+}
+
+.viewportWindowed {
+  border: 1px solid var(--coder-border-strong);
+  border-radius: var(--coder-radius-sm);
+  box-shadow: var(--coder-shadow-sm);
+  min-height: 280px;
+}
+
+.preview {
+  background: var(--coder-preview);
+  border: 0;
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+.emptyState {
+  align-self: center;
+  background: var(--coder-surface);
+  border-radius: var(--coder-radius-md);
+  box-shadow: var(--coder-shadow-sm);
+  justify-self: center;
+  max-width: 420px;
+  padding: 22px;
+}
+
+.emptyState h1 {
+  font-size: var(--coder-font-size-2xl);
+  line-height: 1.08;
+  margin: 0 0 var(--coder-space-3);
+}
+
+.emptyState p {
+  color: var(--coder-muted);
+  font-size: var(--coder-font-size-base);
+  line-height: 1.5;
+  margin: 0;
+}
+
+@media (max-width: 640px) {
+  .viewport {
+    width: 100%;
+  }
+}

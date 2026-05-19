@@ -1,0 +1,66 @@
+{
+  "name": "@taylordb/coderui",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./style.css": "./dist/index.css"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "dev": "node scripts/storybook-server.mjs dev",
+    "dev:serve": "STORYBOOK_DISABLE_TELEMETRY=1 storybook dev --host 127.0.0.1 --port 6006 --no-open",
+    "dev:start": "node scripts/storybook-server.mjs start",
+    "dev:stop": "node scripts/storybook-server.mjs stop",
+    "dev:restart": "node scripts/storybook-server.mjs restart",
+    "dev:status": "node scripts/storybook-server.mjs status",
+    "dev:logs": "node scripts/storybook-server.mjs logs",
+    "dev:tail": "node scripts/storybook-server.mjs tail",
+    "dev:attach": "node scripts/storybook-server.mjs attach",
+    "storybook": "STORYBOOK_DISABLE_TELEMETRY=1 storybook dev --host 127.0.0.1 --port 6006 --no-open",
+    "build:storybook": "STORYBOOK_DISABLE_TELEMETRY=1 storybook build",
+    "build": "tsup && cp src/theme.css dist/index.css",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "dependencies": {
+    "@assistant-ui/react": "^0.14.5",
+    "@assistant-ui/react-markdown": "^0.14.0",
+    "@floating-ui/react": "^0.27.19",
+    "@tanstack/react-query": "^5.100.10",
+    "@tanstack/react-virtual": "^3.13.24",
+    "@taylordb/git-observer": "workspace:^",
+    "react-hotkeys-hook": "^5.3.2",
+    "react-icons": "^5.6.0",
+    "react-markdown": "^10.1.0",
+    "react-resizable-panels": "^4.11.1",
+    "zustand": "^5.0.13"
+  },
+  "devDependencies": {
+    "@storybook/react": "^9.1.20",
+    "@storybook/react-vite": "^9.1.20",
+    "@taylordb/codex": "workspace:^",
+    "@types/react": "^19.0.8",
+    "@types/react-dom": "^19.0.3",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "storybook": "^9.1.20",
+    "tsup": "^8.0.2",
+    "typescript": "^6.0.2",
+    "vite": "^7"
+  }
+}

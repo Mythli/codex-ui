@@ -1,0 +1,26 @@
+.spinner {
+  display: inline-block;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: lui-spin 0.75s linear infinite;
+}
+
+.sm {
+  width: 1em;
+  height: 1em;
+}
+
+.md {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.lg {
+  width: 2rem;
+  height: 2rem;
+}
+
+@keyframes lui-spin {
+  to { transform: rotate(360deg); }
+}

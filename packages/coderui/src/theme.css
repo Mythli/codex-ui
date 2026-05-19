@@ -1,0 +1,269 @@
+/* Global Resets */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--coder-bg);
+  color: var(--coder-text);
+  font-family: var(--coder-font-family);
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+:root,
+.coder-theme-dark {
+  color-scheme: dark;
+
+  /* Absolute colors */
+  --coder-color-absolute-white: #ffffff;
+  --coder-color-absolute-black: #000000;
+
+  /* App palette */
+  --coder-accent: #339cff;
+  --coder-accent-hover: #5fb2ff;
+  --coder-accent-surface: rgba(51, 156, 255, 0.14);
+  --coder-bg: #171717;
+  --coder-border: rgba(255, 255, 255, 0.075);
+  --coder-border-strong: rgba(255, 255, 255, 0.13);
+  --coder-code-bg: rgba(255, 255, 255, 0.055);
+  --coder-code-text: #f7d88b;
+  --coder-faint: rgba(255, 255, 255, 0.38);
+  --coder-muted: rgba(255, 255, 255, 0.58);
+  --coder-panel: #202020;
+  --coder-chat-user-bg: #2d2d2d;
+  --coder-preview: #f7f7f8;
+  --coder-preview-bar: #f8f8f8;
+  --coder-preview-border: #dedede;
+  --coder-preview-text: #101116;
+  --coder-preview-card: rgba(255, 255, 255, 0.94);
+  --coder-preview-card-shadow: 0 18px 42px rgba(20, 24, 30, 0.18);
+  --coder-preview-placeholder-bg:
+    linear-gradient(rgba(255, 255, 255, 0.64), rgba(255, 255, 255, 0.64)),
+    radial-gradient(circle at 72% 30%, rgba(245, 86, 36, 0.22), transparent 32%),
+    linear-gradient(135deg, #f5f7fb 0%, #dfe5ec 48%, #c9d3dc 100%);
+  --coder-preview-placeholder-muted: #4b5563;
+  --coder-sidebar: #242424;
+  --coder-sidebar-elevated: #292929;
+  --coder-sidebar-active: #484b50;
+  --coder-sidebar-hover: rgba(255, 255, 255, 0.055);
+  --coder-sidebar-text: rgba(255, 255, 255, 0.8);
+  --coder-sidebar-muted: rgba(255, 255, 255, 0.42);
+  --coder-sidebar-faint: rgba(255, 255, 255, 0.28);
+  --coder-surface: #272727;
+  --coder-surface-hover: #303030;
+  --coder-surface-muted: rgba(255, 255, 255, 0.035);
+  --coder-text: rgba(255, 255, 255, 0.84);
+  --coder-text-inverse: #111217;
+  --coder-workspace-bg: #111111;
+  --coder-main-surface: #171717;
+  --coder-scrim: rgba(0, 0, 0, 0.18);
+  --coder-scrim-strong: rgba(0, 0, 0, 0.42);
+
+  /* Semantic colors */
+  --coder-success: #8bdc91;
+  --coder-success-bg: rgba(139, 220, 145, 0.14);
+  --coder-diff-add: var(--coder-success);
+  --coder-warning: #ffd166;
+  --coder-warning-bg: rgba(255, 209, 102, 0.14);
+  --coder-danger: #ff6a5f;
+  --coder-danger-bg: rgba(255, 106, 95, 0.14);
+  --coder-diff-remove: var(--coder-danger);
+  --coder-info: #7ab7ff;
+  --coder-info-bg: rgba(122, 183, 255, 0.14);
+
+  /* Typography */
+  --coder-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --coder-font-family-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  --coder-font-size-xs: 0.6875rem;
+  --coder-font-size-sm: 0.75rem;
+  --coder-font-size-base: 0.8125rem;
+  --coder-font-size-md: 0.875rem;
+  --coder-font-size-lg: 0.9375rem;
+  --coder-font-size-xl: 1.125rem;
+  --coder-font-size-2xl: 1.375rem;
+  --coder-font-size-3xl: 1.75rem;
+
+  /* Spacing */
+  --coder-space-1: 0.25rem;
+  --coder-space-2: 0.5rem;
+  --coder-space-3: 0.75rem;
+  --coder-space-4: 1rem;
+  --coder-space-5: 1.25rem;
+  --coder-space-6: 1.5rem;
+  --coder-space-7: 1.75rem;
+  --coder-space-8: 2rem;
+  --coder-space-10: 2.5rem;
+  --coder-toolbar-height: 40px;
+  --coder-toolbar-height-sm: 32px;
+  --coder-sidebar-width: clamp(320px, 40vw, 540px);
+  --coder-drawer-width: 350px;
+  --coder-row-height: 30px;
+  --coder-panel-padding: 10px;
+
+  /* Radii */
+  --coder-radius-xs: 4px;
+  --coder-radius-sm: 6px;
+  --coder-radius-md: 8px;
+  --coder-radius-lg: 10px;
+  --coder-radius-full: 999px;
+
+  /* Shadows */
+  --coder-shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.12);
+  --coder-shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.18);
+  --coder-shadow-md: 0 6px 18px rgba(0, 0, 0, 0.22);
+  --coder-shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.28);
+  --coder-shadow-xl: 0 16px 40px rgba(0, 0, 0, 0.3);
+
+  /* Z-index */
+  --coder-z-base: 1;
+  --coder-z-elevated: 10;
+  --coder-z-sticky: 100;
+  --coder-z-overlay: 1000;
+  --coder-z-modal: 10000;
+  --coder-z-tooltip: 11000;
+}
+
+.coder-theme-light {
+  color-scheme: light;
+  --coder-bg: #f7f7f8;
+  --coder-border: rgba(20, 24, 30, 0.12);
+  --coder-border-strong: rgba(20, 24, 30, 0.2);
+  --coder-code-bg: rgba(20, 24, 30, 0.06);
+  --coder-code-text: #9a3412;
+  --coder-faint: rgba(20, 24, 30, 0.42);
+  --coder-muted: rgba(20, 24, 30, 0.64);
+  --coder-panel: #e9e9ea;
+  --coder-chat-user-bg: #e9e9ea;
+  --coder-sidebar: #f7f7f8;
+  --coder-sidebar-elevated: #ffffff;
+  --coder-sidebar-active: #e6e8ec;
+  --coder-sidebar-hover: rgba(20, 24, 30, 0.055);
+  --coder-sidebar-text: rgba(20, 24, 30, 0.8);
+  --coder-sidebar-muted: rgba(20, 24, 30, 0.5);
+  --coder-sidebar-faint: rgba(20, 24, 30, 0.3);
+  --coder-surface: #ffffff;
+  --coder-surface-hover: #eceef3;
+  --coder-surface-muted: rgba(20, 24, 30, 0.04);
+  --coder-text: #171717;
+  --coder-text-inverse: #ffffff;
+  --coder-workspace-bg: #ffffff;
+  --coder-main-surface: #ffffff;
+  --coder-scrim: rgba(20, 24, 30, 0.12);
+  --coder-scrim-strong: rgba(20, 24, 30, 0.24);
+  --coder-success: #138a43;
+  --coder-success-bg: rgba(19, 138, 67, 0.12);
+  --coder-diff-add: var(--coder-success);
+  --coder-danger: #c7352d;
+  --coder-danger-bg: rgba(199, 53, 45, 0.12);
+  --coder-diff-remove: var(--coder-danger);
+  --coder-info: #2563eb;
+  --coder-info-bg: rgba(37, 99, 235, 0.12);
+  --coder-warning: #9a6700;
+  --coder-warning-bg: rgba(154, 103, 0, 0.12);
+  --coder-shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --coder-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --coder-shadow-md: 0 8px 24px rgba(20, 24, 30, 0.1);
+  --coder-shadow-lg: 0 18px 48px rgba(20, 24, 30, 0.14);
+  --coder-shadow-xl: 24px 0 70px rgba(20, 24, 30, 0.18);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not(.coder-theme-dark) {
+    --coder-bg: #f7f7f8;
+    --coder-border: rgba(20, 24, 30, 0.12);
+    --coder-border-strong: rgba(20, 24, 30, 0.2);
+    --coder-code-bg: rgba(20, 24, 30, 0.06);
+    --coder-code-text: #9a3412;
+    --coder-faint: rgba(20, 24, 30, 0.42);
+    --coder-muted: rgba(20, 24, 30, 0.64);
+    --coder-panel: #e9e9ea;
+    --coder-chat-user-bg: #e9e9ea;
+    --coder-sidebar: #f7f7f8;
+    --coder-sidebar-elevated: #ffffff;
+    --coder-sidebar-active: #e6e8ec;
+    --coder-sidebar-hover: rgba(20, 24, 30, 0.055);
+    --coder-sidebar-text: rgba(20, 24, 30, 0.8);
+    --coder-sidebar-muted: rgba(20, 24, 30, 0.5);
+    --coder-sidebar-faint: rgba(20, 24, 30, 0.3);
+    --coder-surface: #ffffff;
+    --coder-surface-hover: #eceef3;
+    --coder-surface-muted: rgba(20, 24, 30, 0.04);
+    --coder-text: #171717;
+    --coder-text-inverse: #ffffff;
+    --coder-workspace-bg: #ffffff;
+    --coder-main-surface: #ffffff;
+    --coder-scrim: rgba(20, 24, 30, 0.12);
+    --coder-scrim-strong: rgba(20, 24, 30, 0.24);
+    --coder-success: #138a43;
+    --coder-success-bg: rgba(19, 138, 67, 0.12);
+    --coder-diff-add: var(--coder-success);
+    --coder-danger: #c7352d;
+    --coder-danger-bg: rgba(199, 53, 45, 0.12);
+    --coder-diff-remove: var(--coder-danger);
+    --coder-info: #2563eb;
+    --coder-info-bg: rgba(37, 99, 235, 0.12);
+    --coder-warning: #9a6700;
+    --coder-warning-bg: rgba(154, 103, 0, 0.12);
+    --coder-shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.05);
+    --coder-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+    --coder-shadow-md: 0 8px 24px rgba(20, 24, 30, 0.1);
+    --coder-shadow-lg: 0 18px 48px rgba(20, 24, 30, 0.14);
+    --coder-shadow-xl: 24px 0 70px rgba(20, 24, 30, 0.18);
+  }
+}
+
+:root,
+.coder-theme-dark,
+.coder-theme-light {
+  /* Codex semantic tokens */
+  --coder-token-foreground: var(--coder-text);
+  --coder-token-description-foreground: var(--coder-muted);
+  --coder-token-dropdown-background: color-mix(in srgb, var(--coder-sidebar-elevated) 92%, transparent);
+  --coder-token-editor-background: var(--coder-bg);
+  --coder-token-input-background: var(--coder-panel);
+  --coder-token-input-border: var(--coder-border);
+  --coder-token-input-foreground: var(--coder-text);
+  --coder-token-list-hover-background: var(--coder-sidebar-hover);
+  --coder-token-toolbar-hover-background: var(--coder-surface-hover);
+  --coder-token-focus-border: color-mix(in srgb, var(--coder-accent) 72%, var(--coder-border-strong));
+  --coder-token-text-primary: var(--coder-text);
+  --coder-token-text-secondary: var(--coder-muted);
+  --coder-token-text-error: var(--coder-danger);
+}
+
+.coder-story-root {
+  background: var(--coder-bg);
+  color: var(--coder-text);
+}
+
+.coder-story-root {
+  min-height: 100vh;
+}
+
+.coder-scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--coder-border-strong) transparent;
+}
+
+.coder-scrollbar-thin::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+
+.coder-scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.coder-scrollbar-thin::-webkit-scrollbar-thumb {
+  background: var(--coder-border-strong);
+  border-radius: var(--coder-radius-full);
+}

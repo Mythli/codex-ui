@@ -1,0 +1,77 @@
+.wrapper {
+  border-radius: var(--lui-radius-sm);
+  overflow: hidden;
+  border: 2px solid var(--lui-color-border-dark);
+  transition: border-color 0.2s, box-shadow 0.2s;
+  font-family: var(--lui-font-family);
+}
+
+.wrapper:focus-within {
+  border-color: var(--lui-color-primary);
+  box-shadow: 0 0 0 3px var(--lui-color-primary-bg);
+}
+
+/* Override UIW variables to match Learning UI */
+.wrapper :global(.w-md-editor) {
+  background-color: var(--lui-color-bg-main);
+  color: var(--lui-color-text-main);
+  border: none;
+  box-shadow: none;
+}
+
+.wrapper :global(.w-md-editor-toolbar) {
+  background-color: var(--lui-color-bg-alt);
+  border-bottom: 1px solid var(--lui-color-border);
+  padding: var(--lui-space-2);
+}
+
+.wrapper :global(.w-md-editor-toolbar li > button) {
+  color: var(--lui-color-text-muted);
+}
+
+.wrapper :global(.w-md-editor-toolbar li > button:hover) {
+  color: var(--lui-color-text-main);
+  background-color: var(--lui-color-border);
+}
+
+.wrapper :global(.w-md-editor-toolbar li.active > button) {
+  color: var(--lui-color-primary);
+  background-color: var(--lui-color-primary-bg);
+}
+
+.wrapper :global(.w-md-editor-text-pre > code),
+.wrapper :global(.w-md-editor-text-input) {
+  font-family: var(--lui-font-family-mono) !important;
+  font-size: var(--lui-font-size-sm) !important;
+  line-height: 1.6 !important;
+}
+
+.editorPreview {
+  padding: var(--lui-space-3);
+  color: var(--lui-color-text-main);
+  font-family: var(--lui-font-family);
+  font-size: var(--lui-font-size-md);
+  line-height: 1.6;
+}
+
+.editorPreview > :first-child {
+  margin-top: 0;
+}
+
+.editorPreview > :last-child {
+  margin-bottom: 0;
+}
+
+.textareaFallback {
+  width: 100%;
+  display: block;
+  border: 0;
+  resize: vertical;
+  padding: var(--lui-space-3);
+  background: var(--lui-color-bg-main);
+  color: var(--lui-color-text-main);
+  font-family: var(--lui-font-family-mono);
+  font-size: var(--lui-font-size-sm);
+  line-height: 1.6;
+  outline: none;
+}

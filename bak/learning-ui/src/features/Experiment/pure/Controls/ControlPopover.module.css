@@ -1,0 +1,20 @@
+.popover {
+  background: var(--lui-color-bg-elevated);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--lui-color-border);
+  border-radius: var(--lui-radius-lg);
+  box-shadow: var(--lui-shadow-lg);
+  overflow: hidden;
+  pointer-events: auto;
+  opacity: 0;
+  transform: scale(0.95);
+  transition: opacity 0.15s ease-out, transform 0.15s ease-out;
+  transform-origin: top right;
+  font-family: var(--lui-font-family);
+  color: var(--lui-color-text-main);
+}
+
+.visible {
+  opacity: 1;
+  transform: scale(1);
+}

@@ -1,0 +1,78 @@
+.container {
+  width: 100%;
+  font-family: var(--lui-font-family);
+}
+
+.checkboxCol {
+  width: 56px;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+.contentCol {
+  width: auto;
+}
+
+.tagsCol {
+  width: 30%;
+}
+
+.statusCol {
+  width: 120px;
+}
+
+.actionsCol {
+  width: 56px;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+.frontText {
+  color: var(--lui-color-text-main);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tagsWrapper {
+  display: flex;
+  gap: var(--lui-space-1);
+  flex-wrap: wrap;
+}
+
+.checkBtn {
+  background: none;
+  border: none;
+  color: var(--lui-color-text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.checkBtnActive {
+  color: var(--lui-color-primary);
+}
+
+.editBtn {
+  background: none;
+  border: none;
+  color: var(--lui-color-text-light);
+  cursor: pointer;
+  padding: var(--lui-space-2);
+  border-radius: var(--lui-radius-sm);
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.editBtn:hover {
+  background: var(--lui-color-border);
+  color: var(--lui-color-text-main);
+}

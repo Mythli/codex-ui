@@ -1,102 +1,153 @@
-# codex-api
+# TaylorDB Coder
 
-A small TypeScript + Hono HTTP wrapper around the Codex CLI JSONL mode, with a Hono-served React UI for creating chats, sending messages, and inspecting raw JSON events.
+This repo is a pnpm workspace for a full-stack TanStack Coder app and a reusable Coder UI package.
 
-## Setup
+- `apps/coder`: TanStack Start app with the Codex API mounted as server-side app infrastructure.
+- `packages/codex`: reusable Codex app-server transport and resource library.
+- `packages/coderui`: presentational React UI library for the Coder shell.
+- `bak/`: reference material from the learning UI/TanStack app; not part of active builds.
 
-```sh
-npm install
-npm run dev
+## Requirements
+
+- Node.js 20 or newer.
+- pnpm 10.6.5.
+- A working Codex binary on the machine running the app.
+
+The Codex transport uses `CODEX_BIN` when set, otherwise it tries:
+
+```txt
+/Applications/Codex.app/Contents/Resources/codex
 ```
 
-The server listens on `http://localhost:3000` by default. Override with `PORT=4000 npm run dev`.
+and then falls back to `codex` from `PATH`.
 
-Open the UI at `http://localhost:3000`. The route summary is available at `GET /api`.
+## Quick Start
+
+```sh
+pnpm install
+pnpm dev --port 41731
+```
+
+Open:
+
+```txt
+http://localhost:41731/
+```
+
+Health check:
+
+```sh
+curl http://localhost:41731/api/health
+```
 
 ## Scripts
 
-- `npm run dev` builds the React client once, then starts the Hono server in watch mode.
-- `npm run build` builds the TypeScript server and React client.
-- `npm run typecheck` checks both server and client TypeScript.
-
-## Routes
-
-- `GET /health`
-- `GET /api`
-- `POST /chats`
-- `POST /chats/stream`
-- `POST /chats/:threadId/messages`
-- `POST /chats/:threadId/messages/stream`
-
-The non-streaming routes collect Codex JSON events and return:
-
-```json
-{
-  "id": "api-run-id",
-  "threadId": "codex-thread-id",
-  "exitCode": 0,
-  "signal": null,
-  "finalMessage": "assistant text",
-  "events": [],
-  "diagnostics": []
-}
+```sh
+pnpm dev
 ```
 
-The streaming routes return newline-delimited JSON. Codex CLI events are forwarded as they arrive, with wrapper events for process lifecycle and diagnostics:
-
-```jsonl
-{"type":"process.started","runId":"...","args":["exec","--json", "..."]}
-{"type":"thread.started","thread_id":"..."}
-{"type":"turn.started"}
-{"type":"item.completed","item":{"type":"agent_message","text":"pong"}}
-{"type":"turn.completed","usage":{"input_tokens":1,"output_tokens":1}}
-{"type":"process.completed","exitCode":0,"signal":null}
-```
-
-## Create a Chat
+Starts `apps/coder` with Vite/TanStack Start.
 
 ```sh
-curl -s http://localhost:3000/chats \
-  -H 'content-type: application/json' \
-  -d '{"message":"Reply with exactly: pong"}'
+pnpm build
 ```
 
-## Stream a New Chat
+Builds `@taylordb/coderui` with tsup and `@taylordb/coder` with TanStack Start.
 
 ```sh
-curl -N http://localhost:3000/chats/stream \
-  -H 'content-type: application/json' \
-  -d '{"message":"Reply with exactly: pong"}'
+pnpm typecheck
 ```
 
-## Send a Message to an Existing Chat
-
-Use the `threadId` returned by `POST /chats`.
+Runs TypeScript checks for the app and UI package.
 
 ```sh
-curl -s http://localhost:3000/chats/THREAD_ID/messages \
-  -H 'content-type: application/json' \
-  -d '{"message":"Continue with one short sentence"}'
+pnpm test
 ```
 
-## Request Options
+Runs workspace tests where present.
 
-Every message body accepts:
+## Workspace Shape
 
-```json
-{
-  "message": "Required prompt text",
-  "cwd": "/path/to/workspace",
-  "model": "optional-model",
-  "sandbox": "read-only",
-  "approvalPolicy": "never",
-  "skipGitRepoCheck": true,
-  "ephemeral": false,
-  "ignoreUserConfig": false,
-  "ignoreRules": false,
-  "bypassApprovalsAndSandbox": false,
-  "codexBin": "/Applications/Codex.app/Contents/Resources/codex"
-}
+`apps/coder` owns app behavior:
+
+- `app/routes`: TanStack file routes.
+- `app/core`: router and Query client setup.
+- `app/features/Coder`: connected app feature code, adapters, hooks, and types.
+- `api/core`: Hono API mount.
+- `api/core`: Hono API mount backed by `@taylordb/codex`.
+
+`packages/codex` owns reusable Codex logic:
+
+- protocol parsing and typed Codex traffic
+- app-server/socket transports
+- runtime actions and thread lifecycle
+- transcript reduction and render-block projection
+
+The architectural rules for this package live in
+[`packages/codex/docs/developer-principles.md`](./packages/codex/docs/developer-principles.md).
+Read them before changing Codex protocol, transport, transcript, runtime, or render
+contracts.
+
+App-specific Codex behavior, such as `/codex-assets` serving and image/file
+normalization, lives in `apps/coder/api/core`.
+
+`packages/coderui` owns reusable UI:
+
+- `src/common`: primitives like Button, Badge, Input, Spinner, EmptyState, Markdown.
+- `src/features/Coder/pure`: prop-driven Coder shell primitives.
+- `src/theme.css`: shared UI tokens and base styles.
+- `src/index.ts`: public package entry.
+
+## API Routes
+
+The app exposes the Codex API under `/api`:
+
+- `GET /api/health`
+- `GET /api/models`
+- `GET /api/projects`
+- `GET /api/chats`
+- `GET /api/chats/:threadId`
+- `POST /api/chats`
+- `POST /api/chats/stream`
+- `POST /api/chats/:threadId/messages`
+- `POST /api/chats/:threadId/messages/stream`
+
+The streaming routes return newline-delimited JSON.
+
+## UI Package
+
+Build the UI package directly:
+
+```sh
+pnpm --filter @taylordb/coderui build
 ```
 
-By default the wrapper runs Codex with `--sandbox read-only`, `--ask-for-approval never`, and `--skip-git-repo-check`.
+Dry-run the package contents:
+
+```sh
+cd packages/coderui
+npm pack --dry-run
+```
+
+The package exports:
+
+- `@taylordb/coderui`
+- `@taylordb/coderui/style.css`
+
+## Codex Library
+
+Build the Codex package directly:
+
+```sh
+pnpm --filter @taylordb/codex build
+```
+
+The package exports the same high-level helpers used by the app API:
+
+- `runCodex`
+- `streamCodex`
+- `listCodexChats`
+- `listCodexProjects`
+- `listCodexModels`
+- `readCodexChat`
+- `messageRequestSchema`

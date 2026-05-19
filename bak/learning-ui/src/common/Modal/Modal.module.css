@@ -1,0 +1,83 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--lui-color-overlay-dark);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--lui-z-modal);
+  padding: var(--lui-space-5);
+  animation: modal-fade-in 0.2s ease;
+}
+
+@keyframes modal-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.content {
+  background: var(--lui-color-bg-main);
+  border-radius: var(--lui-radius-lg);
+  box-shadow: var(--lui-shadow-lg);
+  animation: modal-slide-in 0.2s ease;
+  min-width: 0;
+  max-height: 90vh;
+  max-width: calc(100vw - (var(--lui-space-5) * 2));
+  overflow: auto;
+  overflow-wrap: anywhere;
+  font-family: var(--lui-font-family);
+}
+
+@keyframes modal-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Size variants */
+.small {
+  width: min(100%, 360px);
+  max-width: 360px;
+}
+
+.medium {
+  width: min(100%, 480px);
+  max-width: 480px;
+}
+
+.large {
+  width: min(100%, 800px);
+  max-width: 800px;
+}
+
+.auto {
+  width: auto;
+  max-width: 95vw;
+}
+
+/* Dark variant - for components with dark backgrounds */
+.dark {
+  background: transparent;
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+  .overlay {
+    padding: var(--lui-space-3);
+  }
+
+  .content {
+    max-width: calc(100vw - (var(--lui-space-3) * 2));
+  }
+
+  .small,
+  .medium {
+    width: 100%;
+  }
+}

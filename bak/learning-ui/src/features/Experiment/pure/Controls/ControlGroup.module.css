@@ -1,0 +1,27 @@
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--lui-space-2);
+  margin-bottom: var(--lui-space-4);
+  font-family: var(--lui-font-family);
+}
+
+.labelRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--lui-font-size-sm);
+  font-weight: 600;
+  color: var(--lui-color-text-muted);
+  text-transform: uppercase;
+}
+
+.value {
+  color: var(--lui-color-accent);
+  font-family: var(--lui-font-family-mono);
+  font-weight: bold;
+  background: var(--lui-color-warning-bg);
+  padding: 2px 6px;
+  border-radius: var(--lui-radius-sm);
+  font-size: var(--lui-font-size-sm);
+}

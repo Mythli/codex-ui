@@ -1,0 +1,74 @@
+.trigger {
+  display: inline-flex;
+}
+
+.tooltip {
+  z-index: var(--lui-z-tooltip);
+  pointer-events: none;
+}
+
+/* Interactive tooltips can receive mouse events */
+.interactive {
+  pointer-events: auto;
+}
+
+.content {
+  background: var(--lui-color-bg-elevated);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--lui-color-border);
+  color: var(--lui-color-text-main);
+  border-radius: var(--lui-radius-lg);
+  box-shadow: var(--lui-shadow-xl);
+  overflow: hidden;
+  max-height: 95vh;
+  overflow-y: auto;
+  font-family: var(--lui-font-family);
+}
+
+/* Default styling for string content */
+.textContent {
+  padding: var(--lui-space-2) var(--lui-space-3);
+  font-weight: 500;
+  white-space: nowrap;
+  font-size: var(--lui-font-size-sm);
+  color: var(--lui-color-text-main);
+}
+
+/* Custom scrollbar for tooltip content */
+.content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.content::-webkit-scrollbar-track {
+  background: var(--lui-color-transparent-white-light);
+  border-radius: 3px;
+}
+
+.content::-webkit-scrollbar-thumb {
+  background: var(--lui-color-transparent-white-medium);
+  border-radius: 3px;
+}
+
+.content::-webkit-scrollbar-thumb:hover {
+  background: var(--lui-color-border-dark);
+}
+
+.arrow {
+  /* Matches the background color of the content */
+  fill: var(--lui-color-bg-elevated);
+}
+
+/* ======================== */
+/* Mobile Responsive        */
+/* ======================== */
+
+@media (max-width: 768px) {
+  .content {
+    max-width: calc(100vw - 20px);
+    max-height: 90vh;
+  }
+  
+  .textContent {
+    white-space: normal;
+  }
+}

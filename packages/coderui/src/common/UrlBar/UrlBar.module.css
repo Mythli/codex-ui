@@ -1,0 +1,57 @@
+.urlBar {
+  align-items: center;
+  background: var(--coder-token-dropdown-background);
+  color: var(--coder-token-foreground);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  height: 100%;
+  min-width: 0;
+  overflow: hidden;
+  width: 100%;
+}
+
+.leading,
+.actions {
+  align-items: stretch;
+  display: grid;
+  grid-auto-columns: 44px;
+  grid-auto-flow: column;
+  height: 100%;
+  min-width: 0;
+}
+
+.addressField {
+  align-items: center;
+  align-self: stretch;
+  border-left: 1px solid var(--coder-border);
+  border-right: 1px solid var(--coder-border);
+  display: grid;
+  font-size: var(--coder-font-size-base);
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 var(--coder-space-3);
+  text-align: center;
+}
+
+.addressText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.urlBar button {
+  border: 0;
+  border-radius: 0;
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+}
+
+@media (max-width: 720px) {
+  .leading,
+  .actions {
+    grid-auto-columns: 40px;
+  }
+}

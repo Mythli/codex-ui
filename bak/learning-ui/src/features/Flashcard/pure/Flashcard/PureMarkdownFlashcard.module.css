@@ -1,0 +1,73 @@
+.markdownBody {
+  text-align: center;
+  width: 100%;
+  font-size: var(--lui-font-size-lg);
+  line-height: 1.6;
+  color: var(--lui-color-text-main);
+}
+
+.markdownBody h1,
+.markdownBody h2,
+.markdownBody h3 {
+  margin-top: 0;
+  margin-bottom: var(--lui-space-3);
+  color: var(--lui-color-text-main);
+}
+
+.markdownBody p {
+  margin-bottom: var(--lui-space-4);
+}
+
+.markdownBody p:last-child {
+  margin-bottom: 0;
+}
+
+.markdownBody strong {
+  color: var(--lui-color-primary);
+  font-weight: 700;
+}
+
+.markdownBody em {
+  font-style: italic;
+  color: var(--lui-color-text-muted);
+}
+
+.markdownBody code {
+  background-color: var(--lui-color-bg-elevated);
+  padding: 0.2em 0.4em;
+  border-radius: var(--lui-radius-sm);
+  font-family: var(--lui-font-family-mono);
+  font-size: 0.9em;
+  border: 1px solid var(--lui-color-border);
+  color: var(--lui-color-accent);
+}
+
+.markdownBody img {
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: var(--lui-radius-sm);
+  margin: var(--lui-space-2) 0;
+  box-shadow: var(--lui-shadow-sm);
+}
+
+.markdownBody a {
+  color: var(--lui-color-info);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.markdownBody a:hover {
+  text-decoration: underline;
+}
+
+.markdownBody ul, 
+.markdownBody ol {
+  text-align: left;
+  display: inline-block;
+  margin: 0 auto var(--lui-space-4) auto;
+  padding-left: var(--lui-space-6);
+}
+
+.markdownBody li {
+  margin-bottom: var(--lui-space-2);
+}

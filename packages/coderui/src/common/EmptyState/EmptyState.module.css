@@ -1,0 +1,22 @@
+.empty {
+  align-items: center;
+  color: var(--coder-muted);
+  display: grid;
+  gap: var(--coder-space-2);
+  justify-items: center;
+  padding: 28px 16px;
+  text-align: center;
+}
+
+.title {
+  color: var(--coder-text);
+  font-size: var(--coder-font-size-lg);
+  font-weight: 600;
+  margin: 0;
+}
+
+.body {
+  line-height: 1.5;
+  margin: 0;
+  max-width: 320px;
+}

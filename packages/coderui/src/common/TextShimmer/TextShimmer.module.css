@@ -1,0 +1,79 @@
+.textShimmer {
+  --text-shimmer-highlight: var(--coder-text);
+
+  color: currentColor;
+  display: inline-block;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  position: relative;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+  white-space: nowrap;
+}
+
+.base {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: inherit;
+  white-space: inherit;
+}
+
+.sweep {
+  inset: 0 auto 0 0;
+  overflow: hidden;
+  pointer-events: none;
+  position: absolute;
+  transform: translateX(-100%);
+  width: 55%;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 38%, #000 62%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 38%, #000 62%, transparent 100%);
+}
+
+.highlight {
+  color: var(--text-shimmer-highlight);
+  display: block;
+  min-width: max-content;
+  transform: translateX(55%);
+  white-space: inherit;
+}
+
+.active .sweep {
+  animation: text-shimmer-sweep 1.45s ease-in-out infinite;
+}
+
+.active .highlight {
+  animation: text-shimmer-highlight 1.45s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .active .sweep,
+  .active .highlight {
+    animation: none;
+  }
+
+  .sweep {
+    display: none;
+  }
+}
+
+@keyframes text-shimmer-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(240%);
+  }
+}
+
+@keyframes text-shimmer-highlight {
+  0% {
+    transform: translateX(55%);
+  }
+
+  100% {
+    transform: translateX(-132%);
+  }
+}

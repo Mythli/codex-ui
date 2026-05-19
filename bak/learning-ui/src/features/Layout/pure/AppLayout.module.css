@@ -1,0 +1,50 @@
+.layout {
+  --lui-layout-sidebar-offset: 0px;
+
+  display: flex;
+  flex-direction: row;
+  min-height: 100vh;
+  width: 100%;
+  position: relative;
+  background-color: var(--lui-color-bg-alt);
+  transition: background-color 0.3s ease;
+  font-family: var(--lui-font-family);
+}
+
+.sidebarOpen {
+  --lui-layout-sidebar-offset: 280px;
+}
+
+.layoutDark {
+  background-color: var(--lui-color-bg-main);
+}
+
+.viewport {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 100vh;
+  min-width: 0;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--lui-color-bg-overlay);
+  z-index: var(--lui-z-overlay);
+  backdrop-filter: blur(2px);
+}
+
+/* Hide the overlay on desktop since the sidebar pushes content instead of floating over it */
+@media (min-width: 769px) {
+  .overlay {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .sidebarOpen {
+    --lui-layout-sidebar-offset: 0px;
+  }
+}

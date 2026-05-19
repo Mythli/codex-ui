@@ -1,0 +1,82 @@
+.section {
+  background: var(--lui-color-bg-main);
+  border: 1px solid var(--lui-color-border);
+  border-radius: var(--lui-radius-lg);
+  padding: var(--lui-space-6);
+  box-shadow: var(--lui-shadow-sm);
+  position: relative;
+  font-family: var(--lui-font-family);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--lui-space-4);
+  margin-bottom: var(--lui-space-5);
+}
+
+.number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--lui-color-primary);
+  color: var(--lui-color-text-inverse);
+  border-radius: var(--lui-radius-full);
+  font-weight: 700;
+  font-size: var(--lui-font-size-md);
+  flex-shrink: 0;
+}
+
+.title {
+  font-size: var(--lui-font-size-2xl);
+  color: var(--lui-color-text-main);
+  font-weight: 600;
+  margin: 0;
+}
+
+.content {
+  color: var(--lui-color-text-muted);
+  line-height: 1.7;
+  font-size: var(--lui-font-size-md);
+}
+
+/* Implicit spacing for children */
+.content > p {
+  margin-bottom: 1em;
+}
+
+.content > p:last-child {
+  margin-bottom: 0;
+}
+
+.content > ul,
+.content > ol {
+  margin-left: var(--lui-space-5);
+  margin-bottom: 1.25em;
+  line-height: 1.8;
+}
+
+.content > ul:last-child,
+.content > ol:last-child {
+  margin-bottom: 0;
+}
+
+.content li {
+  margin-bottom: 0.5em;
+}
+
+.content li:last-child {
+  margin-bottom: 0;
+}
+
+@media (max-width: 768px) {
+  .section {
+    padding: var(--lui-space-5);
+  }
+
+  .title {
+    font-size: var(--lui-font-size-xl);
+  }
+}

@@ -1,0 +1,51 @@
+.bar {
+  position: fixed;
+  bottom: var(--lui-space-6);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--lui-z-elevated);
+  animation: slide-up 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  font-family: var(--lui-font-family);
+  width: max-content;
+  max-width: 95vw;
+}
+
+@keyframes slide-up {
+  from { transform: translate(-50%, 100%); opacity: 0; }
+  to { transform: translate(-50%, 0); opacity: 1; }
+}
+
+.content {
+  background: var(--lui-color-bg-elevated);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--lui-color-border);
+  border-radius: 9999px; /* Use a large absolute value for a pill shape, not 50% */
+  /* Asymmetric padding: more on the left for the text, tight on the right for the buttons */
+  padding: var(--lui-space-2) var(--lui-space-2) var(--lui-space-2) var(--lui-space-5);
+  display: flex;
+  align-items: center;
+  gap: var(--lui-space-6);
+  box-shadow: var(--lui-shadow-lg);
+}
+
+.info {
+  display: flex;
+  align-items: center;
+  gap: var(--lui-space-3);
+  color: var(--lui-color-text-main);
+  font-weight: 500;
+  font-size: var(--lui-font-size-sm);
+}
+
+.actions {
+  display: flex;
+  gap: var(--lui-space-2);
+  align-items: center;
+}
+
+@media (max-width: 600px) {
+  .content {
+    gap: var(--lui-space-3);
+    padding-left: var(--lui-space-4);
+  }
+}

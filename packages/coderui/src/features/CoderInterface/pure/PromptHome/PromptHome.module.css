@@ -1,0 +1,38 @@
+.promptHome {
+  align-content: start;
+  display: grid;
+  justify-items: stretch;
+  min-height: 100%;
+  padding: var(--coder-space-8) var(--coder-space-3) var(--coder-space-4);
+  text-align: left;
+}
+
+.sparkles {
+  color: var(--coder-accent);
+  font-size: var(--coder-font-size-base);
+  font-weight: 700;
+  margin-bottom: var(--coder-space-3);
+  opacity: 0.85;
+}
+
+.promptHome h1 {
+  font-size: var(--coder-font-size-lg);
+  font-weight: 650;
+  line-height: 1.25;
+  margin: 0 0 var(--coder-space-2);
+}
+
+.promptHome p {
+  color: var(--coder-muted);
+  font-size: var(--coder-font-size-sm);
+  line-height: 1.45;
+  margin: 0 0 var(--coder-space-4);
+  max-width: 240px;
+}
+
+.promptSuggestions {
+  align-items: stretch;
+  display: grid;
+  gap: var(--coder-space-1);
+  justify-content: stretch;
+}

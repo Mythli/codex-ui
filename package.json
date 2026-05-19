@@ -1,43 +1,39 @@
 {
-  "name": "codex-api",
+  "name": "codex-api-workspace",
   "version": "0.1.0",
-  "description": "Hono wrapper around the Codex CLI JSONL interface.",
+  "private": true,
   "type": "module",
-  "main": "dist/index.js",
-  "scripts": {
-    "dev": "npm run build:client && tsx watch src/index.ts",
-    "start": "node dist/index.js",
-    "build": "npm run build:server && npm run build:client",
-    "build:server": "tsc -p tsconfig.server.json",
-    "build:client": "vite build",
-    "typecheck": "tsc -p tsconfig.server.json --noEmit && tsc -p tsconfig.client.json --noEmit"
-  },
-  "keywords": [
-    "codex",
-    "hono",
-    "jsonl"
+  "packageManager": "pnpm@10.6.5",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
   ],
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "@hono/node-server": "^1.19.6",
-    "highlight.js": "^11.11.1",
-    "hono": "^4.10.6",
-    "react": "^19.2.6",
-    "react-dom": "^19.2.6",
-    "react-icons": "^5.6.0",
-    "react-markdown": "^10.1.0",
-    "rehype-highlight": "^7.0.2",
-    "remark-gfm": "^4.0.1",
-    "zod": "^4.2.0"
+  "scripts": {
+    "dev": "pnpm --filter @taylordb/coder dev",
+    "dev:e2e": "pnpm --filter @taylordb/coder dev:e2e",
+    "dev:start": "pnpm --filter @taylordb/coder dev:start",
+    "dev:stop": "pnpm --filter @taylordb/coder dev:stop",
+    "dev:restart": "pnpm --filter @taylordb/coder dev:restart",
+    "dev:status": "pnpm --filter @taylordb/coder dev:status",
+    "dev:logs": "pnpm --filter @taylordb/coder dev:logs",
+    "dev:tail": "pnpm --filter @taylordb/coder dev:tail",
+    "dev:attach": "pnpm --filter @taylordb/coder dev:attach",
+    "storybook": "pnpm --filter @taylordb/coderui dev",
+    "storybook:start": "pnpm --filter @taylordb/coderui dev:start",
+    "storybook:stop": "pnpm --filter @taylordb/coderui dev:stop",
+    "storybook:restart": "pnpm --filter @taylordb/coderui dev:restart",
+    "storybook:status": "pnpm --filter @taylordb/coderui dev:status",
+    "storybook:logs": "pnpm --filter @taylordb/coderui dev:logs",
+    "storybook:tail": "pnpm --filter @taylordb/coderui dev:tail",
+    "storybook:attach": "pnpm --filter @taylordb/coderui dev:attach",
+    "build": "pnpm -r --if-present build",
+    "codex:e2e:dump": "pnpm --filter @taylordb/codex dump:e2e",
+    "codex:e2e:capture": "pnpm --filter @taylordb/codex test:e2e:capture",
+    "test:e2e:click": "pnpm --filter @taylordb/coder test:e2e:click",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "pnpm --filter @taylordb/codex test"
   },
   "devDependencies": {
-    "@types/node": "^25.0.1",
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.2",
-    "tsx": "^4.21.0",
-    "typescript": "^5.9.3",
-    "vite": "^8.0.13"
+    "typescript": "^6.0.2"
   }
 }

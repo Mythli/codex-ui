@@ -1,0 +1,38 @@
+.card {
+  border: 2px dashed var(--lui-color-border-dark);
+  border-radius: var(--lui-radius-lg);
+  padding: var(--lui-space-6);
+  background: var(--lui-color-bg-alt);
+  transition: border-color 0.2s;
+  font-family: var(--lui-font-family);
+}
+
+.card:hover {
+  border-color: var(--lui-color-primary);
+}
+
+.header {
+  text-align: center;
+  margin-bottom: var(--lui-space-5);
+}
+
+.title {
+  font-size: var(--lui-font-size-lg);
+  font-weight: 700;
+  color: var(--lui-color-text-main);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: var(--lui-space-1);
+}
+
+.subtitle {
+  font-size: var(--lui-font-size-sm);
+  color: var(--lui-color-text-light);
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--lui-space-5);
+}

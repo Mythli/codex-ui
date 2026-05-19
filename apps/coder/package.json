@@ -1,0 +1,46 @@
+{
+  "name": "@taylordb/coder",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/dev-server.mjs dev",
+    "dev:serve": "vite dev --host 127.0.0.1 --port 5173 --strictPort",
+    "dev:start": "node scripts/dev-server.mjs start",
+    "dev:stop": "node scripts/dev-server.mjs stop",
+    "dev:restart": "node scripts/dev-server.mjs restart",
+    "dev:status": "node scripts/dev-server.mjs status",
+    "dev:logs": "node scripts/dev-server.mjs logs",
+    "dev:tail": "node scripts/dev-server.mjs tail",
+    "dev:attach": "node scripts/dev-server.mjs attach",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit",
+    "test:e2e:click": "node e2e/click/run-click-e2e.mjs",
+    "test:e2e:click:raw": "playwright test -c e2e/click/playwright.config.ts"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.100.10",
+    "@tanstack/react-router": "^1.169.2",
+    "@tanstack/react-start": "^1.167.65",
+    "@taylordb/coderui": "workspace:*",
+    "@taylordb/codex": "workspace:*",
+    "@taylordb/git-observer": "workspace:^",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3",
+    "ws": "^8.20.1"
+  },
+  "devDependencies": {
+    "@tanstack/react-router-devtools": "^1.166.13",
+    "@tanstack/react-start-plugin": "^1.131.50",
+    "@types/node": "^25.0.1",
+    "@types/react": "^19.0.8",
+    "@types/react-dom": "^19.0.3",
+    "@types/ws": "^8.18.1",
+    "@vitejs/plugin-react": "^6.0.1",
+    "@playwright/test": "^1.57.0",
+    "typescript": "^6.0.2",
+    "vite": "^8.0.0"
+  }
+}

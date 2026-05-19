@@ -4,6 +4,7 @@ node_modules/
 # Build output
 dist/
 .vite/
+storybook-static/
 
 # Environment and secrets
 .env
@@ -30,6 +31,8 @@ coverage/
 
 # Local screenshots and scratch output
 screenshots/
+apps/coder/test-results/
+apps/coder/e2e/click/test-results/
 
 # JetBrains / PhpStorm
 .idea/

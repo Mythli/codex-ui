@@ -1,0 +1,130 @@
+.topbar {
+  align-items: stretch;
+  background: var(--coder-main-surface);
+  border-bottom: 1px solid var(--coder-border);
+  color: var(--coder-text);
+  display: grid;
+  grid-template-columns: minmax(340px, var(--coder-sidebar-width)) minmax(360px, 1fr);
+  min-height: 44px;
+  min-width: 0;
+}
+
+.topbarChatOnly {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.topbarPreviewOnly {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.leftRail,
+.previewRail,
+.chatActions {
+  align-items: center;
+  min-width: 0;
+}
+
+.leftRail {
+  display: flex;
+  gap: var(--coder-space-2);
+  padding: 0 var(--coder-space-2);
+}
+
+.previewRail {
+  border-left: 1px solid var(--coder-border-strong);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  padding: 0 var(--coder-space-3);
+  position: relative;
+}
+
+.topbarPreviewOnly .previewRail {
+  border-left: 0;
+}
+
+.previewCenter {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+  width: min(460px, 62%);
+}
+
+.previewActions,
+.chatActions {
+  align-items: center;
+  display: flex;
+  gap: var(--coder-space-2);
+}
+
+.previewActions {
+  position: absolute;
+  right: var(--coder-space-3);
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.chatActions {
+  padding-right: var(--coder-space-2);
+}
+
+.projectIdentity {
+  align-items: center;
+  display: flex;
+  min-width: 0;
+}
+
+.projectName {
+  color: var(--coder-text);
+  font-size: var(--coder-font-size-base);
+  font-weight: 650;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topTitle {
+  font-size: var(--coder-font-size-base);
+  font-weight: 600;
+  overflow: hidden;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .topbar {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .topbar:not(.topbarChatOnly):not(.topbarPreviewOnly) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .topbarChatOnly {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .topbar:not(.topbarChatOnly):not(.topbarPreviewOnly) .previewRail {
+    display: none;
+  }
+
+  .leftRail {
+    padding: 0 var(--coder-space-2);
+  }
+
+  .projectIdentity {
+    display: none;
+  }
+
+  .previewRail {
+    padding-left: var(--coder-space-2);
+    padding-right: var(--coder-space-2);
+  }
+
+  .previewCenter {
+    width: 100%;
+  }
+}

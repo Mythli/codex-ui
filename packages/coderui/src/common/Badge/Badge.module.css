@@ -1,0 +1,22 @@
+.badge {
+  align-items: center;
+  border: 1px solid var(--coder-border);
+  border-radius: var(--coder-radius-full);
+  color: var(--coder-token-description-foreground);
+  display: inline-flex;
+  font-size: var(--coder-font-size-xs);
+  font-weight: 700;
+  gap: 6px;
+  min-height: 22px;
+  padding: 0 8px;
+}
+
+.success {
+  background: var(--coder-success-bg);
+  border-color: var(--coder-success-bg);
+  color: var(--coder-success);
+}
+
+.neutral {
+  color: var(--coder-token-description-foreground);
+}

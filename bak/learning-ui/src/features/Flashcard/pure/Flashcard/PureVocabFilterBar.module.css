@@ -1,0 +1,39 @@
+.toolbar {
+  display: flex;
+  gap: var(--lui-space-4);
+  align-items: center;
+  flex-wrap: wrap;
+  width: 100%;
+  font-family: var(--lui-font-family);
+}
+
+.search {
+  flex: 2;
+  min-width: 250px;
+}
+
+.tagFilter {
+  flex: 1;
+  min-width: 200px;
+}
+
+.statusFilter {
+  flex: 1;
+  min-width: 150px;
+}
+
+.action {
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .search, .tagFilter, .statusFilter {
+    flex: 100%;
+  }
+  .action {
+    width: 100%;
+  }
+  .action > * {
+    width: 100%;
+  }
+}

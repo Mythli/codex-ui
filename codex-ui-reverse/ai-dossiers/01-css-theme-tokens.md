@@ -1,0 +1,503 @@
+
+# 01 CSS Theme Tokens
+
+## CSS Files
+| Path | Size | Vars | Media |
+| --- | --- | --- | --- |
+| webview/assets/PopcornElectronPresentationPanel-CxXBuB6-.css | 3.3 KB | --codex-responsive, --color-token-bg-secondary, --color-token-main-surface-primary, --overlay-desktop | @media (width>=900px) |
+| webview/assets/app-main-DT9r06ux.css | 404.5 KB | --animate-ping, --animate-pulse, --animate-spin, --app-shell-main-content-frame-top-offset, --app-shell-tab-background, --blue-100, --blue-300, --blue-400, --blue-50, --blue-900, --blur-lg, --blur-md, --blur-sm, --blur-xl, --bottom-fade, --codex-chat-code-font-size, --codex-chat-font-size, --codex-diffs-header-padding-x, --codex-diffs-surface-override, --codex-window-zoom, --color-accent-blue, --color-accent-green, --color-accent-orange, --color-accent-purple, --color-accent-red | @media (prefers-reduced-motion:reduce); @media (prefers-reduced-motion:reduce); @media (prefers-reduced-motion:reduce); @media (prefers-reduced-motion:reduce); @media (prefers-reduced-motion:reduce); @media (width>=15rem); @media (width>=20rem); @media (width>=40rem) |
+| webview/assets/app-shell-CuBOfa-y.css | 2.5 KB | --app-shell-main-content-frame-top-offset, --app-shell-tab-background, --codex-titlebar-tint, --color-token-main-surface-primary, --color-token-text-link-foreground, --height-toolbar, --spacing, --thread-content-top-inset, --thread-floating-content-top-inset | @media (prefers-reduced-motion:reduce) |
+| webview/assets/apps-kHJ-D0s7.css | 2.8 KB |  |  |
+| webview/assets/codex-avatar-D82knaKt.css | 135 B |  |  |
+| webview/assets/composer-Bszob1mP.css | 6.1 KB | --cmdk-bottom-item-radius, --cmdk-list-height, --codex-window-zoom, --collapsed, --color-token-border, --color-token-description-foreground, --color-token-dropdown-background, --color-token-foreground, --color-token-list-hover-background, --command-menu-list-max-height, --command-menu-max-height, --composer-top-menu-max-height, --cursor-interaction, --padding-row-x, --padding-row-y, --radius-2xl, --radius-3xl, --radius-lg, --shadow-2xl, --sm, --spacing, --text-base, --text-sm, --xs |  |
+| webview/assets/dialog-CyrLYBi9.css | 633 B | --cubic-enter, --spacing, --transition-duration-relaxed | @media (prefers-reduced-motion:reduce); @media (prefers-reduced-motion:reduce) |
+| webview/assets/diff-unified-D4NO3G6Q.css | 838 B | --color-token-description-foreground, --loading-results-shimmer-base, --loading-results-shimmer-highlight | @media (prefers-reduced-motion:reduce) |
+| webview/assets/dropdown-WLGrgMtf.css | 2.7 KB | --cubic-enter, --cubic-exit-snappy, --dropdown-content-inset, --dropdown-content-parent-bottom-start-transform, --dropdown-content-parent-bottom-transform, --dropdown-content-start-transform, --radix-dropdown-menu-content-transform-origin, --radix-dropdown-menu-trigger-height, --transition-duration-basic | @media (prefers-reduced-motion:no-preference); @media (prefers-reduced-motion:no-preference) |
+| webview/assets/hotkey-window-CEd6X73x.css | 1.8 KB | --color-token-bg-primary, --color-token-border, --color-token-side-bar-background, --composer-top-tray-background, --composer-top-tray-border, --composer-top-tray-inline-padding, --composer-top-tray-top-padding, --hotkey-window-home-shell-radius, --hotkey-window-home-shell-shadow, --radius-4xl |  |
+| webview/assets/markdown-V5_Mvbrr.css | 1.5 KB | --duration, --markdown-wide-block-max-width, --padding-toolbar, --wide-block-container-max-width, --wide-block-width | @media (prefers-reduced-motion:reduce) |
+| webview/assets/pdf-preview-panel-BHPFKiOr.css | 1.6 KB | --cursor-interaction, --scale-factor, --total-scale-factor, --user-unit |  |
+| webview/assets/plugins-page-DoKhPslE.css | 197 B |  |  |
+| webview/assets/prompt-editor-CuG3vGfb.css | 2.7 KB | --cmdk-bottom-item-radius, --color-token-border, --color-token-input-placeholder-foreground, --color-token-side-bar-background, --composer-top-tray-background, --composer-top-tray-border, --composer-top-tray-inline-padding, --composer-top-tray-max-height, --composer-top-tray-top-padding, --radius-3xl, --spacing |  |
+| webview/assets/remote-text-edit-session-CW-aJKLZ.css | 4.3 KB |  |  |
+| webview/assets/thinking-shimmer-83dxNCp_.css | 1.5 KB | --shimmer-contrast, --shimmer-text-secondary | @media (prefers-reduced-motion:reduce) |
+| webview/assets/use-file-mention-autocomplete-Ek-d7Dca.css | 1.3 KB | --color-token-input-placeholder-foreground | @media (prefers-reduced-motion:reduce) |
+| webview/assets/user-message-attachments-CxuoHau6.css | 2.2 KB | --color-token-terminal-ansi-black, --color-token-terminal-ansi-blue, --color-token-terminal-ansi-bright-black, --color-token-terminal-ansi-bright-blue, --color-token-terminal-ansi-bright-cyan, --color-token-terminal-ansi-bright-green, --color-token-terminal-ansi-bright-magenta, --color-token-terminal-ansi-bright-red, --color-token-terminal-ansi-bright-white, --color-token-terminal-ansi-bright-yellow, --color-token-terminal-ansi-cyan, --color-token-terminal-ansi-green, --color-token-terminal-ansi-magenta, --color-token-terminal-ansi-red, --color-token-terminal-ansi-white, --color-token-terminal-ansi-yellow |  |
+
+## CSS Variables
+- `--animate-ping: ping 1s cubic-bezier(0, 0, .2, 1) infinite`
+- `--animate-pulse: pulse 2s cubic-bezier(.4, 0, .6, 1) infinite`
+- `--animate-spin: spin 1s linear infinite`
+- `--app-shell-main-content-frame-top-offset: 0px`
+- `--app-shell-main-content-frame-top-offset: var(--height-toolbar)`
+- `--blue-100: #99ceff`
+- `--blue-300: #339cff`
+- `--blue-400: #0285ff`
+- `--blue-50: #e5f3ff`
+- `--blue-900: #00284d`
+- `--blur-lg: 16px`
+- `--blur-md: 12px`
+- `--blur-sm: 8px`
+- `--blur-xl: 24px`
+- `--bottom-fade: 0`
+- `--bottom-fade: var(--edge-fade-distance,1rem)`
+- `--cmdk-bottom-item-radius: 0`
+- `--cmdk-bottom-item-radius: calc(var(--radius-2xl) - var(--spacing))`
+- `--cmdk-bottom-item-radius: calc(var(--radius-3xl) - var(--spacing))`
+- `--codex-chat-code-font-size: var(--vscode-chat-editor-font-size,var(--vscode-editor-font-size,12px))`
+- `--codex-chat-font-size: var(--vscode-chat-font-size,var(--vscode-font-size,13px))`
+- `--codex-diffs-header-padding-x: var(--turn-diff-row-padding-x)`
+- `--codex-diffs-surface-override: color-mix(in oklab,var(--color-token-dropdown-background) 50%,transparent)`
+- `--codex-diffs-surface-override: color-mix(in oklab,var(--color-token-input-background) 50%,transparent)`
+- `--codex-diffs-surface-override: var(--color-token-diff-surface)`
+- `--codex-diffs-surface-override: var(--color-token-dropdown-background)`
+- `--codex-diffs-surface-override: var(--color-token-input-background)`
+- `--codex-window-zoom: 1`
+- `--color-accent-blue: var(--blue-300)`
+- `--color-accent-green: var(--green-300)`
+- `--color-accent-green: var(--green-500)`
+- `--color-accent-orange: var(--orange-400)`
+- `--color-accent-orange: var(--orange-500)`
+- `--color-accent-purple: var(--purple-300)`
+- `--color-accent-purple: var(--purple-400)`
+- `--color-accent-red: var(--red-300)`
+- `--color-accent-red: var(--red-500)`
+- `--color-accent-yellow: var(--yellow-300)`
+- `--color-accent-yellow: var(--yellow-400)`
+- `--color-background-accent-active: var(--blue-50)`
+- `--color-background-accent-active: var(--blue-900)`
+- `--color-background-accent-hover: var(--blue-50)`
+- `--color-background-accent-hover: var(--blue-900)`
+- `--color-background-accent: var(--blue-50)`
+- `--color-background-accent: var(--blue-900)`
+- `--color-background-button-primary-active: #0d0d0d1a`
+- `--color-background-button-primary-active: color-mix(in oklab, var(--color-text-foreground) 16%, transparent)`
+- `--color-background-button-primary-active: color-mix(in oklab, var(--gray-1000) 10%, transparent)`
+- `--color-background-button-primary-active: var(--color-text-foreground)`
+- `--color-background-button-primary-hover: #0d0d0d0f`
+- `--color-background-button-primary-hover: color-mix(in oklab, var(--color-text-foreground) 8%, transparent)`
+- `--color-background-button-primary-hover: color-mix(in oklab, var(--gray-1000) 6%, transparent)`
+- `--color-background-button-primary-hover: var(--color-text-foreground)`
+- `--color-background-button-primary-inactive: #0d0d0d08`
+- `--color-background-button-primary-inactive: color-mix(in oklab, var(--color-text-foreground) 24%, transparent)`
+- `--color-background-button-primary-inactive: color-mix(in oklab, var(--gray-1000) 3%, transparent)`
+- `--color-background-button-primary-inactive: var(--color-text-foreground)`
+- `--color-background-button-primary: var(--color-text-foreground)`
+- `--color-background-button-primary: var(--gray-1000)`
+- `--color-background-button-secondary-active: #ffffff1f`
+- `--color-background-button-secondary-active: color-mix(in oklab, var(--color-text-foreground) 4%, transparent)`
+- `--color-background-button-secondary-active: color-mix(in oklab, var(--gray-0) 12%, transparent)`
+- `--color-background-button-secondary-active: var(--color-text-foreground)`
+- `--color-background-button-secondary-hover: #ffffff14`
+- `--color-background-button-secondary-hover: color-mix(in oklab, var(--color-text-foreground) 5%, transparent)`
+- `--color-background-button-secondary-hover: color-mix(in oklab, var(--gray-0) 8%, transparent)`
+- `--color-background-button-secondary-hover: var(--color-text-foreground)`
+- `--color-background-button-secondary-inactive: #ffffff0a`
+- `--color-background-button-secondary-inactive: color-mix(in oklab, var(--color-text-foreground) 2%, transparent)`
+- `--color-background-button-secondary-inactive: color-mix(in oklab, var(--gray-0) 4%, transparent)`
+- `--color-background-button-secondary-inactive: var(--color-text-foreground)`
+- `--color-background-button-secondary: #ffffff0d`
+- `--color-background-button-secondary: color-mix(in oklab, var(--color-text-foreground) 5%, transparent)`
+- `--color-background-button-secondary: color-mix(in oklab, var(--gray-0) 5%, transparent)`
+- `--color-background-button-secondary: var(--color-text-foreground)`
+- `--color-background-button-tertiary-active: #ffffff1a`
+- `--color-background-button-tertiary-active: color-mix(in oklab, var(--color-text-foreground) 20%, transparent)`
+- `--color-background-button-tertiary-active: color-mix(in oklab, var(--gray-0) 10%, transparent)`
+- `--color-background-button-tertiary-active: var(--color-text-foreground)`
+- `--color-background-button-tertiary-hover: #ffffff12`
+- `--color-background-button-tertiary-hover: color-mix(in oklab, var(--color-text-foreground) 10%, transparent)`
+- `--color-background-button-tertiary-hover: color-mix(in oklab, var(--gray-0) 7.0%, transparent)`
+- `--color-background-button-tertiary-hover: var(--color-text-foreground)`
+- `--color-background-button-tertiary: #ffffff08`
+- `--color-background-button-tertiary: color-mix(in oklab, var(--color-text-foreground) 0%, transparent)`
+- `--color-background-button-tertiary: color-mix(in oklab, var(--gray-0) 3%, transparent)`
+- `--color-background-button-tertiary: var(--color-text-foreground)`
+- `--color-background-danger-active: #e02e2ae6`
+- `--color-background-danger-active: #fa423e5c`
+- `--color-background-danger-active: color-mix(in oklab, var(--red-400) 36%, transparent)`
+- `--color-background-danger-active: color-mix(in oklab, var(--red-500) 90%, transparent)`
+- `--color-background-editor-opaque: #ededed66`
+- `--color-background-editor-opaque: color-mix(in oklab, var(--gray-100) 40%, transparent)`
+- `--color-background-editor-opaque: var(--gray-800)`
+- `--color-background-elevated-primary-opaque: var(--gray-0)`
+- `--color-background-elevated-primary-opaque: var(--gray-750)`
+- `--color-background-elevated-primary: #212121f5`
+- `--color-background-elevated-primary: #ffffffb3`
+- `--color-background-elevated-primary: color-mix(in oklab, var(--gray-0) 70%, transparent)`
+- `--color-background-elevated-primary: color-mix(in oklab, var(--gray-800) 96%, transparent)`
+- `--color-background-elevated-primary: var(--color-background-elevated-primary-opaque)`
+- `--color-background-elevated-secondary-opaque: #ededed66`
+- `--color-background-elevated-secondary-opaque: color-mix(in oklab, var(--gray-100) 40%, transparent)`
+- `--color-background-elevated-secondary-opaque: var(--gray-800)`
+- `--color-background-elevated-secondary: #ffffff08`
+- `--color-background-elevated-secondary: color-mix(in oklab, var(--color-text-foreground) 2%, transparent)`
+- `--color-background-elevated-secondary: color-mix(in oklab, var(--gray-0) 3%, transparent)`
+- `--color-background-elevated-secondary: var(--color-text-foreground)`
+- `--color-background-status-error: var(--red-50)`
+- `--color-background-status-error: var(--red-900)`
+- `--color-background-status-success: #00a24012`
+- `--color-background-status-success: #04b84c29`
+- `--color-background-status-success: color-mix(in oklab, var(--green-400) 16%, transparent)`
+- `--color-background-status-success: color-mix(in oklab, var(--green-500) 7.0%, transparent)`
+- `--color-background-status-warning: var(--orange-50)`
+- `--color-background-status-warning: var(--orange-900)`
+- `--color-background-surface-under: black`
+- `--color-background-surface-under: var(--gray-50)`
+- `--color-background-surface-under: var(--vscode-sideBar-background)`
+- `--color-background-surface: var(--gray-0)`
+- `--color-background-surface: var(--gray-900)`
+- `--color-background-surface: var(--vscode-editor-background)`
+- `--color-black: #000`
+- `--color-blue-100: oklch(93.2% .032 255.585)`
+- `--color-blue-300: oklch(80.9% .105 251.813)`
+- `--color-blue-500: oklch(62.3% .214 259.815)`
+- `--color-blue-700: oklch(48.8% .243 264.376)`
+- `--color-border-error: #e02e2a26`
+- `--color-border-error: #fa423e66`
+- `--color-border-error: color-mix(in oklab, var(--red-400) 40%, transparent)`
+- `--color-border-error: color-mix(in oklab, var(--red-500) 15%, transparent)`
+- `--color-border-focus: #339cffb3`
+- `--color-border-focus: color-mix(in oklab, var(--blue-300) 70%, transparent)`
+- `--color-border-focus: var(--blue-300)`
+- `--color-border-heavy: #ffffff29`
+- `--color-border-heavy: color-mix(in oklab, var(--color-text-foreground) 12%, transparent)`
+- `--color-border-heavy: color-mix(in oklab, var(--white) 16%, transparent)`
+- `--color-border-heavy: var(--color-text-foreground)`
+- `--color-border-light: #ffffff0a`
+- `--color-border-light: color-mix(in oklab, var(--color-text-foreground) 5%, transparent)`
+- `--color-border-light: color-mix(in oklab, var(--white) 4%, transparent)`
+- `--color-border-light: var(--color-text-foreground)`
+- `--color-border-warning: #e2550726`
+- `--color-border-warning: #ff854966`
+- `--color-border-warning: color-mix(in oklab, var(--orange-300) 40%, transparent)`
+- `--color-border-warning: color-mix(in oklab, var(--orange-500) 15%, transparent)`
+- `--color-border: #ffffff14`
+- `--color-border: color-mix(in oklab, var(--color-text-foreground) 8%, transparent)`
+- `--color-border: color-mix(in oklab, var(--white) 8%, transparent)`
+- `--color-border: var(--color-text-foreground)`
+- `--color-cyan-300: oklch(86.5% .127 207.078)`
+- `--color-cyan-500: oklch(71.5% .143 215.221)`
+- `--color-cyan-700: oklch(52% .105 223.128)`
+- `--color-decoration-added: var(--green-300)`
+- `--color-decoration-added: var(--green-500)`
+- `--color-decoration-deleted: var(--red-400)`
+- `--color-decoration-deleted: var(--red-600)`
+- `--color-decoration-modified: var(--orange-300)`
+- `--color-decoration-modified: var(--orange-700)`
+- `--color-decoration-unchanged: var(--gray-300)`
+- `--color-decoration-unchanged: var(--gray-600)`
+- `--color-editor-added: #00a24026`
+- `--color-editor-added: #40c9773b`
+- `--color-editor-added: color-mix(in oklab, var(--green-300) 23%, transparent)`
+- `--color-editor-added: color-mix(in oklab, var(--green-500) 15%, transparent)`
+- `--color-editor-deleted: #ba262326`
+- `--color-editor-deleted: #fa423e3b`
+- `--color-editor-deleted: color-mix(in oklab, var(--red-400) 23%, transparent)`
+- `--color-editor-deleted: color-mix(in oklab, var(--red-600) 15%, transparent)`
+- `--color-emerald-300: oklch(84.5% .143 164.978)`
+- `--color-emerald-500: oklch(69.6% .17 162.48)`
+- `--color-emerald-700: oklch(50.8% .118 165.612)`
+- `--color-fuchsia-300: oklch(83.3% .145 321.434)`
+- `--color-fuchsia-500: oklch(66.7% .295 322.15)`
+- `--color-fuchsia-700: oklch(51.8% .253 323.949)`
+- `--color-gray-400: oklch(70.7% .022 261.325)`
+- `--color-green-500: oklch(72.3% .219 149.579)`
+- `--color-icon-accent: var(--blue-300)`
+- `--color-icon-error: var(--red-300)`
+- `--color-icon-error: var(--red-500)`
+- `--color-icon-primary: #ffffffe6`
+- `--color-icon-primary: color-mix(in oklab, var(--white) 90%, transparent)`
+- `--color-icon-primary: var(--color-text-foreground)`
+- `--color-icon-secondary: #ffffffb3`
+- `--color-icon-secondary: color-mix(in oklab, var(--color-text-foreground) 70%, transparent)`
+- `--color-icon-secondary: color-mix(in oklab, var(--white) 70%, transparent)`
+- `--color-icon-secondary: var(--color-text-foreground)`
+- `--color-icon-success: var(--green-300)`
+- `--color-icon-success: var(--green-500)`
+- `--color-icon-tertiary: #ffffff80`
+- `--color-icon-tertiary: color-mix(in oklab, var(--color-text-foreground) 50%, transparent)`
+- `--color-icon-tertiary: color-mix(in oklab, var(--white) 50%, transparent)`
+- `--color-icon-tertiary: var(--color-text-foreground)`
+- `--color-icon-warning: var(--orange-300)`
+- `--color-icon-warning: var(--orange-500)`
+- `--color-indigo-300: oklch(78.5% .115 274.713)`
+- `--color-indigo-500: oklch(58.5% .233 277.117)`
+- `--color-indigo-700: oklch(45.7% .24 277.023)`
+- `--color-neutral-300: oklch(87% 0 0)`
+- `--color-neutral-500: oklch(55.6% 0 0)`
+- `--color-neutral-700: oklch(37.1% 0 0)`
+- `--color-orange-100: oklch(95.4% .038 75.164)`
+- `--color-orange-300: oklch(83.7% .128 66.29)`
+- `--color-orange-500: oklch(70.5% .213 47.604)`
+- `--color-orange-700: oklch(55.3% .195 38.402)`
+- `--color-orange-800: oklch(47% .157 37.304)`
+- `--color-red-500: oklch(63.7% .237 25.331)`
+- `--color-rose-300: oklch(81% .117 11.638)`
+- `--color-rose-500: oklch(64.5% .246 16.439)`
+- `--color-rose-700: oklch(51.4% .222 16.935)`
+- `--color-simple-scrim: #0000001a`
+- `--color-simple-scrim: #ffffff1a`
+- `--color-sky-300: oklch(82.8% .111 230.318)`
+- `--color-sky-500: oklch(68.5% .169 237.323)`
+- `--color-sky-700: oklch(50% .134 242.749)`
+- `--color-slate-100: oklch(96.8% .007 247.896)`
+- `--color-slate-700: oklch(37.2% .044 257.287)`
+- `--color-slate-950: oklch(12.9% .042 264.695)`
+- `--color-stone-300: oklch(86.9% .005 56.366)`
+- `--color-stone-500: oklch(55.3% .013 58.071)`
+- `--color-stone-700: oklch(37.4% .01 67.558)`
+- `--color-text-accent: var(--blue-100)`
+- `--color-text-accent: var(--blue-300)`
+- `--color-text-button-primary: var(--gray-0)`
+- `--color-text-button-primary: var(--gray-1000)`
+- `--color-text-button-secondary: var(--color-text-foreground)`
+- `--color-text-button-secondary: var(--gray-300)`
+- `--color-text-button-tertiary: var(--gray-500)`
+- `--color-text-error: var(--red-300)`
+- `--color-text-error: var(--red-500)`
+- `--color-text-foreground-secondary: #ffffffb3`
+- `--color-text-foreground-secondary: color-mix(in oklab, var(--color-text-foreground) 70%, transparent)`
+- `--color-text-foreground-secondary: color-mix(in oklab, var(--gray-0) 70%, transparent)`
+- `--color-text-foreground-secondary: var(--color-text-foreground)`
+- `--color-text-foreground-tertiary: #ffffff80`
+- `--color-text-foreground-tertiary: color-mix(in oklab, var(--color-text-foreground) 50%, transparent)`
+- `--color-text-foreground-tertiary: color-mix(in oklab, var(--gray-0) 50%, transparent)`
+- `--color-text-foreground-tertiary: var(--color-text-foreground)`
+- `--color-text-foreground: #1a1c1f`
+- `--color-text-foreground: var(--gray-0)`
+- `--color-text-success: var(--green-300)`
+- `--color-text-success: var(--green-500)`
+- `--color-text-warning: var(--orange-300)`
+- `--color-text-warning: var(--orange-500)`
+- `--color-token-activity-bar-badge-background: var(--vscode-activityBarBadge-background)`
+- `--color-token-activity-bar-badge-foreground: var(--vscode-activityBarBadge-foreground)`
+- `--color-token-badge-background: var(--vscode-badge-background)`
+- `--color-token-badge-foreground: var(--vscode-badge-foreground)`
+- `--color-token-bg-fog: color-mix(in oklab, var(--color-token-foreground) 2.5%, transparent)`
+- `--color-token-bg-fog: var(--color-background-elevated-secondary)`
+
+## Color Values
+- `#000`
+- `#0000`
+- `#00000005`
+- `#00000006`
+- `#0000000d`
+- `#0000000f`
+- `#00000012`
+- `#00000014`
+- `#0000001a`
+- `#0000001f`
+- `#00000022`
+- `#00000026`
+- `#00000030`
+- `#00000038`
+- `#00000042`
+- `#00000047`
+- `#0000004d`
+- `#00000080`
+- `#000000bf`
+- `#000000e6`
+- `#0002`
+- `#0003`
+- `#0009`
+- `#001bcb`
+- `#00284d`
+- `#0053d6`
+- `#006aff`
+- `#0071ea`
+- `#008809`
+- `#00a240`
+- `#00a24012`
+- `#00a24026`
+- `#00a5ef1a`
+- `#00a67d`
+- `#00b7d71a`
+- `#00bb7f1a`
+- `#0184bb`
+- `#0285ff`
+- `#04b84c`
+- `#04b84c29`
+- `#0d0d0d`
+- `#0d0d0d08`
+- `#0d0d0d0f`
+- `#0d0d0d1a`
+- `#0f0`
+- `#0f172a`
+- `#111827`
+- `#128dff33`
+- `#181818`
+- `#1a1c1f`
+- `#1e1e1e`
+- `#20b8ff`
+- `#212121`
+- `#212121f5`
+- `#282828`
+- `#2e95d3`
+- `#303030`
+- `#3080ff1a`
+- `#339cff`
+- `#339cffb3`
+- `#383a42`
+- `#38bdf82e`
+- `#3b82f661`
+- `#3b82f6a6`
+- `#3d8dff`
+- `#4078f2`
+- `#40c977`
+- `#40c9773b`
+- `#414141`
+- `#4452ff`
+- `#4a2206`
+- `#4d100e`
+- `#4f4f4f`
+- `#50a14f`
+- `#59d24e`
+- `#5d5d5d`
+- `#625fff1a`
+- `#65cbf3`
+- `#666`
+- `#686868`
+- `#6dcbf4`
+- `#6e6e6e`
+- `#7373731a`
+- `#751ed9`
+- `#7882ff`
+- `#79716b1a`
+- `#81eeee`
+- `#828282`
+- `#85df7b`
+- `#8cf`
+- `#8d54ff1a`
+- `#923b0f`
+- `#924ff7`
+- `#9494ff`
+- `#94f494`
+- `#9840ff`
+- `#986801`
+- `#999`
+- `#99ceff`
+- `#9e9eff`
+- `#a0a1a7`
+- `#a626a4`
+- `#ad7bf9`
+- `#adadad`
+- `#adffff`
+- `#afafaf`
+- `#b06dff`
+- `#ba2623`
+- `#ba262326`
+- `#bd5800`
+- `#c18401`
+- `#d53538`
+- `#d6d6d6`
+- `#da6a44`
+- `#DA6A44`
+- `#db6bdb`
+- `#df3079`
+- `#e02e2a`
+- `#e02e2a26`
+- `#e02e2ae6`
+- `#e12afb1a`
+- `#e25507`
+- `#e2550726`
+- `#e45649`
+- `#e5f3ff`
+- `#e8e8e8`
+- `#e9950c`
+- `#edb2001a`
+- `#ededed`
+- `#ededed66`
+- `#f22c3d`
+- `#f44a4c`
+- `#f4f47b`
+- `#f66`
+- `#f67576`
+- `#f87915`
+- `#f9f9f9`
+- `#fa423e`
+- `#fa423e3b`
+- `#fa423e5c`
+- `#fa423e66`
+- `#fa994c`
+- `#facc15`
+- `#fb2c361a`
+- `#fb6a22`
+- `#fe6e001a`
+- `#ff03`
+- `#ff23571a`
+- `#ff66ad`
+- `#ff6764`
+- `#ff7d45`
+- `#ff8549`
+- `#ff854966`
+- `#ffa8a8`
+- `#ffb3ff`
+- `#ffc300`
+- `#ffc93c`
+- `#FFC93C`
+- `#ffc93cbf`
+- `#ffd240`
+- `#ffd666f2`
+- `#ffd9d9`
+- `#ffdb13`
+- `#ffe7d9`
+- `#ffecbe73`
+- `#ffefa8f2`
+- `#fff`
+- `#fff3`
+- `#fff9`
+- `#fffc`
+- `#ffffa8`
+- `#ffffff`
+- `#ffffff05`
+- `#ffffff06`
+- `#ffffff08`
+- `#ffffff0a`
+- `#ffffff0d`
+- `#ffffff0f`
+- `#ffffff12`
+- `#ffffff14`
+- `#ffffff1a`
+- `#ffffff1f`
+- `#ffffff29`
+- `#ffffff40`
+- `#ffffff47`
+- `#ffffff6b`
+- `#ffffff75`
+- `#ffffff80`
+- `#ffffff85`
+- `#ffffffb3`
+- `#ffffffbf`
+- `#ffffffe6`
+- `color-mix(in lab, red, red)`
+- `color-mix(in oklab, color-mix(in oklab, var(--color-black)`
+- `color-mix(in oklab, currentcolor 10%, transparent)`
+- `color-mix(in oklab, currentcolor 20%, transparent)`
+- `color-mix(in oklab, currentcolor 30%, transparent)`
+- `color-mix(in oklab, currentcolor 50%, transparent)`
+- `color-mix(in oklab, var(--blue-300)`
+- `color-mix(in oklab, var(--color-black)`
+
+## Font Families
+- `Carlito`
+- `inherit`
+- `KaTeX_AMS`
+- `KaTeX_Caligraphic`
+- `KaTeX_Fraktur`
+- `KaTeX_Main`
+- `KaTeX_Math`
+- `KaTeX_SansSerif`
+- `KaTeX_Script`
+- `KaTeX_Size1`
+- `KaTeX_Size2`
+- `KaTeX_Size3`
+- `KaTeX_Size4`
+- `KaTeX_Typewriter`
+- `ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace`
+- `var(--default-font-family,ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji")`
+- `var(--default-mono-font-family,ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace)`
+- `var(--font-mono)`
+- `var(--font-sans)`
+- `var(--font-sans)!important`
+- `var(--vscode-editor-font-family,var(--font-mono-default))`
+- `var(--vscode-editor-font-family)`
+- `var(--vscode-font-family)`

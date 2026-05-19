@@ -1,0 +1,60 @@
+import type { ReactNode } from "react";
+import type { GitCommit, GitSnapshot } from "@taylordb/git-observer";
+import type { CoderProjectItem } from "../../../CoderCore/types";
+import type { CoderShellViewMode } from "./ViewModeSwitcher";
+import styles from "./WorkspaceTopBar.module.css";
+
+export function WorkspaceTopBar({
+  left,
+  center,
+  mode = "both",
+  right,
+  project
+}: {
+  commitHistoryError?: string;
+  commits?: GitCommit[];
+  currentHead?: GitSnapshot["head"];
+  hasMoreCommits?: boolean;
+  isLoadingCommits?: boolean;
+  isLoadingMoreCommits?: boolean;
+  onPublish?: () => void;
+  onLoadMoreCommits?: () => void;
+  onSelectCommit?: (commit: GitCommit) => void | Promise<void>;
+  left?: ReactNode;
+  center?: ReactNode;
+  mode?: CoderShellViewMode;
+  right?: ReactNode;
+  project: CoderProjectItem;
+  status?: string;
+}) {
+  const topbarClassName = [
+    styles.topbar,
+    mode === "chat" ? styles.topbarChatOnly : "",
+    mode === "preview" ? styles.topbarPreviewOnly : ""
+  ].filter(Boolean).join(" ");
+
+  return (
+    <header className={topbarClassName}>
+      <div className={styles.leftRail}>
+        {left}
+        <div className={styles.projectIdentity}>
+          <span className={styles.projectName}>{project.name}</span>
+        </div>
+      </div>
+
+      {mode !== "chat" ? (
+        <div className={styles.previewRail}>
+          <div className={styles.previewCenter}>
+            {center ?? <div className={styles.topTitle}>{project.name}</div>}
+          </div>
+          {right ? <div className={styles.previewActions}>{right}</div> : null}
+        </div>
+      ) : null}
+      {mode === "chat" ? (
+        <div className={styles.chatActions}>
+          {right}
+        </div>
+      ) : null}
+    </header>
+  );
+}

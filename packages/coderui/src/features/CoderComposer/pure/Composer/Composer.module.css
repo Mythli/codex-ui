@@ -1,0 +1,5 @@
+.composer {
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--coder-sidebar) 92%, transparent) 18%);
+  display: block;
+  padding: 12px;
+}

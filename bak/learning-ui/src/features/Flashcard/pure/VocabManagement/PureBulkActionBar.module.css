@@ -1,0 +1,37 @@
+.info {
+  display: flex;
+  align-items: center;
+  gap: var(--lui-space-2);
+  color: var(--lui-color-text-main);
+  font-weight: 500;
+  font-size: var(--lui-font-size-sm);
+}
+
+.count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  background: var(--lui-color-primary);
+  color: white;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: var(--lui-font-size-sm);
+  padding: 0 var(--lui-space-1);
+}
+
+.clearBtn {
+  background: none;
+  border: none;
+  color: var(--lui-color-text-light);
+  cursor: pointer;
+  font-size: var(--lui-font-size-sm);
+  text-decoration: underline;
+  padding: 0;
+  margin-left: var(--lui-space-2);
+}
+
+.clearBtn:hover {
+  color: var(--lui-color-text-main);
+}

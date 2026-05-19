@@ -1,0 +1,40 @@
+.input,
+.textarea,
+.select {
+  background: var(--coder-token-input-background);
+  border: 1px solid var(--coder-token-input-border);
+  border-radius: var(--coder-radius-md);
+  color: var(--coder-token-input-foreground);
+  font: inherit;
+  font-size: var(--coder-font-size-base);
+  outline: none;
+  transition: background 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.input,
+.select {
+  height: var(--coder-row-height);
+  padding: 0 9px;
+}
+
+.textarea {
+  min-height: 68px;
+  padding: 9px;
+  resize: vertical;
+  width: 100%;
+}
+
+.input:focus,
+.textarea:focus,
+.select:focus {
+  border-color: var(--coder-token-focus-border);
+  box-shadow: 0 0 0 1px var(--coder-token-focus-border);
+}
+
+.input:disabled,
+.textarea:disabled,
+.select:disabled {
+  background: color-mix(in srgb, var(--coder-token-foreground) 5%, transparent);
+  color: var(--coder-token-text-secondary);
+  opacity: 1;
+}

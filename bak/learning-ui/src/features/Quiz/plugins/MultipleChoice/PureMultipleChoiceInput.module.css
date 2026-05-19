@@ -1,0 +1,148 @@
+.choices {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+  font-family: var(--lui-font-family);
+}
+
+.choice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 20px;
+  background: var(--lui-color-bg-alt);
+  border: 2px solid var(--lui-color-border-dark);
+  border-radius: var(--lui-radius-sm);
+  font-size: var(--lui-font-size-md);
+  color: var(--lui-color-text-main);
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.indicator {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--lui-color-border-dark);
+  flex-shrink: 0;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--lui-color-bg-main);
+}
+
+.radio {
+  border-radius: 50%;
+}
+
+.checkbox {
+  border-radius: 4px;
+}
+
+/* Inner dot for radio */
+.radio::after {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: white;
+  transform: scale(0);
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Inner checkmark for checkbox */
+.checkbox::after {
+  content: '';
+  width: 5px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) scale(0);
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  margin-top: -2px;
+}
+
+.text {
+  flex: 1;
+}
+
+.choice:hover:not(:disabled) {
+  background: var(--lui-color-bg-elevated);
+  border-color: var(--lui-color-primary);
+}
+
+.choice:hover:not(:disabled) .indicator {
+  border-color: var(--lui-color-primary);
+}
+
+.selected {
+  background: var(--lui-color-primary-bg);
+  border-color: var(--lui-color-primary);
+}
+
+.selected .indicator {
+  background: var(--lui-color-primary);
+  border-color: var(--lui-color-primary);
+}
+
+.selected .radio::after {
+  transform: scale(1);
+}
+
+.selected .checkbox::after {
+  transform: rotate(45deg) scale(1);
+}
+
+.correct {
+  background: var(--lui-color-success-bg);
+  border-color: var(--lui-color-success);
+  color: var(--lui-color-success-text);
+}
+
+.correct .indicator {
+  background: var(--lui-color-success);
+  border-color: var(--lui-color-success);
+}
+
+/* Show checkmark/dot for correct answers even if not selected (e.g., revealed) */
+.correct .radio::after {
+  transform: scale(1);
+}
+
+.correct .checkbox::after {
+  transform: rotate(45deg) scale(1);
+}
+
+.incorrect {
+  background: var(--lui-color-danger-bg);
+  border-color: var(--lui-color-danger);
+}
+
+.incorrect .indicator {
+  background: var(--lui-color-danger);
+  border-color: var(--lui-color-danger);
+}
+
+/* Keep checkmark/dot visible for incorrect selections */
+.incorrect.selected .radio::after {
+  transform: scale(1);
+}
+
+.incorrect.selected .checkbox::after {
+  transform: rotate(45deg) scale(1);
+}
+
+.choice:disabled {
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .choice {
+    padding: 12px 15px;
+    font-size: var(--lui-font-size-sm);
+  }
+}

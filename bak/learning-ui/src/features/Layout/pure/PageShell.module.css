@@ -1,0 +1,35 @@
+.shell {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 100%;
+  min-height: 100vh;
+}
+
+.headerWrapper {
+  position: sticky;
+  top: 0;
+  z-index: var(--lui-z-sticky);
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.content {
+  flex: 1;
+  padding: var(--lui-space-6) var(--lui-space-4);
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+  .content {
+    padding: var(--lui-space-4);
+  }
+}
+
+@media (max-width: 480px) {
+  .content {
+    padding: var(--lui-space-3);
+  }
+}

@@ -1,0 +1,10 @@
+.tags {
+  display: flex;
+  gap: var(--lui-space-2);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.actions {
+  margin-top: var(--lui-space-2);
+}

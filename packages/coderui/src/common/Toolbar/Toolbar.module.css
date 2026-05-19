@@ -1,0 +1,40 @@
+.toolbar {
+  align-items: center;
+  background: var(--coder-main-surface, var(--coder-bg));
+  border-bottom: 1px solid var(--coder-border);
+  color: var(--coder-token-foreground);
+  display: grid;
+  gap: var(--coder-space-2);
+  grid-template-columns: 1fr auto 1fr;
+  min-height: var(--coder-toolbar-height);
+  padding: 0 var(--coder-panel-padding);
+}
+
+.left,
+.center,
+.right {
+  align-items: center;
+  display: flex;
+  gap: var(--coder-space-2);
+  min-width: 0;
+}
+
+.left {
+  justify-content: flex-start;
+}
+
+.center {
+  justify-content: center;
+}
+
+.right {
+  justify-content: flex-end;
+}
+
+.title {
+  font-size: var(--coder-font-size-md);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

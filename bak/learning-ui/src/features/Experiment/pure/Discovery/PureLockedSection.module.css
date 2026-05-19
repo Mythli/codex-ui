@@ -1,0 +1,99 @@
+.section {
+  position: relative;
+  font-family: var(--lui-font-family);
+  width: 100%;
+  display: block;
+}
+
+.content {
+  transition: filter 0.3s ease;
+  width: 100%;
+  display: block;
+  will-change: filter;
+  transform: translateZ(0);
+}
+
+.contentLocked {
+  filter: blur(8px);
+  user-select: none;
+  pointer-events: none;
+  min-height: 240px; /* Ensures the container is tall enough for the lock box */
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--lui-color-bg-glass);
+  border-radius: var(--lui-radius-lg);
+  z-index: var(--lui-z-elevated);
+}
+
+.lockBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--lui-space-2);
+  padding: var(--lui-space-6);
+  background: var(--lui-color-bg-main);
+  border-radius: var(--lui-radius-lg);
+  box-shadow: var(--lui-shadow-lg);
+  text-align: center;
+  max-width: 300px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.lockIcon {
+  font-size: var(--lui-font-size-3xl);
+}
+
+.lockMessage {
+  font-size: var(--lui-font-size-base);
+  color: var(--lui-color-text-muted);
+  line-height: 1.4;
+}
+
+.peekBtn {
+  margin-top: var(--lui-space-2);
+  padding: var(--lui-space-2) var(--lui-space-4);
+  background: transparent;
+  border: 1px solid var(--lui-color-border-dark);
+  border-radius: var(--lui-radius-sm);
+  font-size: var(--lui-font-size-sm);
+  color: var(--lui-color-text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.peekBtn:hover {
+  background: var(--lui-color-bg-alt);
+  border-color: var(--lui-color-text-main);
+  color: var(--lui-color-text-main);
+}
+
+.badge {
+  position: absolute;
+  top: var(--lui-space-4);
+  right: var(--lui-space-4);
+  z-index: var(--lui-z-base);
+}
+
+.unlockedAuto {
+  position: relative;
+}
+
+/* Targets the ConceptSection inside the LockedSection */
+.unlockedAuto .content > * {
+  border-left: 4px solid var(--lui-color-success);
+  box-shadow: var(--lui-shadow-sm);
+}
+
+@media (max-width: 600px) {
+  .lockBox { padding: var(--lui-space-6); max-width: 260px; }
+  .lockIcon { font-size: var(--lui-font-size-2xl); }
+  .lockMessage { font-size: var(--lui-font-size-sm); }
+  .badge { top: var(--lui-space-3); right: var(--lui-space-3); }
+}

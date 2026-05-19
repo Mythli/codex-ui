@@ -1,0 +1,33 @@
+.sidebarHeader {
+  align-items: center;
+  border-bottom: 1px solid var(--coder-border);
+  display: flex;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 var(--coder-panel-padding);
+}
+
+.projectButton {
+  flex: 1;
+  min-width: 0;
+}
+
+.projectName,
+.chatTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.projectName {
+  color: var(--coder-text);
+  font-size: var(--coder-font-size-base);
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.chatTitle {
+  color: var(--coder-muted);
+  font-size: var(--coder-font-size-xs);
+  line-height: 1.2;
+}

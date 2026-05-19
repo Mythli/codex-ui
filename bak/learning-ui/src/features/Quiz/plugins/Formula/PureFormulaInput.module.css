@@ -1,0 +1,23 @@
+.container {
+  font-family: var(--lui-font-family);
+}
+
+.preview {
+  margin-top: 10px;
+  min-height: 24px;
+  font-size: var(--lui-font-size-lg);
+  font-weight: 600;
+  font-family: monospace;
+}
+
+.scratchpad {
+  margin-top: 20px;
+}
+
+.scratchpadLabel {
+  display: block;
+  font-size: var(--lui-font-size-sm);
+  color: var(--lui-color-text-muted);
+  margin-bottom: 8px;
+  font-weight: 500;
+}
