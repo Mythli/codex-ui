@@ -84,7 +84,7 @@ export class CodexThreadIndexReducer {
     }
 
     if (traffic.kind === "request" && traffic.method === "turn/start") {
-      const threadId = stringValue(traffic.params.threadId);
+      const threadId = stringValue((traffic.params as { threadId?: unknown }).threadId);
       if (!threadId) {
         return state;
       }
@@ -108,19 +108,20 @@ export class CodexThreadIndexReducer {
 
     const packet = CodexTrafficPacket.from(traffic);
     const event = traffic.event;
+    const params = event.params as Record<string, unknown>;
     const method = event.method === "unknown" ? event.eventMethod : event.method;
 
     if (method === "thread/started") {
-      const thread = asThread(event.params.thread);
+      const thread = asThread(params.thread);
       return thread ? finalizeState(upsertThread(state, thread)) : state;
     }
 
     if (method === "thread/status/changed") {
-      const threadId = stringValue(event.params.threadId) ?? packet.threadId;
+      const threadId = stringValue(params.threadId) ?? packet.threadId;
       if (!threadId) {
         return state;
       }
-      const active = isActiveStatus(event.params.status);
+      const active = isActiveStatus(params.status);
       return finalizeState(patchOrCreateThread(state, threadId, {
         activity: active ? "running" : "none",
         updatedAt: active ? timestampIso(traffic.timestampMs ?? Date.now()) : undefined
@@ -128,11 +129,11 @@ export class CodexThreadIndexReducer {
     }
 
     if (method === "turn/started") {
-      const threadId = stringValue(event.params.threadId) ?? packet.threadId;
+      const threadId = stringValue(params.threadId) ?? packet.threadId;
       if (!threadId) {
         return state;
       }
-      const turnId = stringValue(event.params.turnId) ?? packet.turnId;
+      const turnId = stringValue(params.turnId) ?? packet.turnId;
       return finalizeState(rememberTurnThreadId(patchOrCreateThread(state, threadId, {
         activity: "running",
         updatedAt: timestampIso(traffic.timestampMs ?? Date.now())
@@ -140,24 +141,24 @@ export class CodexThreadIndexReducer {
     }
 
     if (method === "turn/completed") {
-      const turnId = stringValue(event.params.turnId) ?? packet.turnId;
-      const threadId = stringValue(event.params.threadId) ?? packet.threadId ?? threadIdForTurn(state, turnId);
+      const turnId = stringValue(params.turnId) ?? packet.turnId;
+      const threadId = stringValue(params.threadId) ?? packet.threadId ?? threadIdForTurn(state, turnId);
       return threadId ? finalizeState(patchOrCreateThread(state, threadId, { activity: "none" })) : state;
     }
 
     if (method === "thread/name/updated") {
-      const threadId = stringValue(event.params.threadId) ?? packet.threadId;
-      const title = stringValue(event.params.threadName);
+      const threadId = stringValue(params.threadId) ?? packet.threadId;
+      const title = stringValue(params.threadName);
       return threadId && title ? finalizeState(patchThread(state, threadId, { title })) : state;
     }
 
     if (method === "thread/archived") {
-      const threadId = stringValue(event.params.threadId) ?? packet.threadId;
+      const threadId = stringValue(params.threadId) ?? packet.threadId;
       return threadId ? finalizeState(removeThread(state, threadId)) : state;
     }
 
     if (method === "thread/unarchived") {
-      const thread = asThread(event.params.thread);
+      const thread = asThread(params.thread);
       return thread ? finalizeState(upsertThread(state, thread)) : state;
     }
 
@@ -355,7 +356,7 @@ function stringValue(value: unknown): string | undefined {
   return typeof value === "string" ? value : undefined;
 }
 
-function timestampIso(value: CodexParsedThread["updatedAt"] | CodexParsedThread["createdAt"]): string | undefined {
+function timestampIso(value: unknown): string | undefined {
   if (value instanceof Date) {
     return value.toISOString();
   }

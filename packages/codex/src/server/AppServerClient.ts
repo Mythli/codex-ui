@@ -90,8 +90,8 @@ export class AppServerClient implements CodexTransport {
 
   async initialize(): Promise<void> {
     await this.request("initialize", {
-      clientInfo: { name: "codex-api", version: "0.1.0" },
-      capabilities: { experimentalApi: true }
+      clientInfo: { name: "codex-api", title: "Codex API", version: "0.1.0" },
+      capabilities: { experimentalApi: true, requestAttestation: false }
     });
     this.notify("initialized");
   }

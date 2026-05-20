@@ -245,19 +245,6 @@ function normalizeOutgoingUserInput(
   value: CodexParsedUserInput,
   context: AssetReplacementContext
 ): CodexParsedUserInput {
-  if (value.type === "input_image" && value.image_url.startsWith("data:")) {
-    const staged = context.assets.registerDataUrl(value.image_url, { stageFile: true, originalName: "upload" });
-    if (!staged || !("path" in staged)) {
-      return value;
-    }
-    context.diagnostic?.("Codex asset transform staged browser input_image upload as localImage.path");
-    return {
-      type: "localImage",
-      path: staged.path,
-      asset: codexAssetRef(staged.asset)
-    };
-  }
-
   if (value.type !== "image" || !value.url.startsWith("data:")) {
     return value;
   }
@@ -388,7 +375,7 @@ function threadItemsMatch(a: CodexParsedThreadItem, b: CodexParsedThreadItem): b
 }
 
 function userMessageText(content: readonly CodexParsedUserInput[]): string {
-  return content.flatMap((entry) => entry.type === "text" || entry.type === "input_text" ? [entry.text] : []).join("\n");
+  return content.flatMap((entry) => entry.type === "text" ? [entry.text] : []).join("\n");
 }
 
 function normalizeFsReadFileResponse(

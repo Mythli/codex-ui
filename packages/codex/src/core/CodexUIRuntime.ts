@@ -642,7 +642,7 @@ class CodexUIRuntimeImpl implements CodexUIRuntime {
       return packet.threadId;
     }
     if (traffic.kind === "request" && traffic.method === "fs/readFile") {
-      return this.threadIdForSessionPath(traffic.params.path);
+      return this.threadIdForSessionPath((traffic.params as { path?: unknown }).path);
     }
     if (packet.requestId) {
       return this.threadIdForRequestId(packet.requestId);
@@ -875,7 +875,8 @@ function shortId(value: string): string {
 
 function trafficPath(traffic: CodexProtocolTraffic): string | undefined {
   if (traffic.kind === "request" && traffic.method === "fs/readFile") {
-    return typeof traffic.params.path === "string" ? traffic.params.path : undefined;
+    const path = (traffic.params as { path?: unknown }).path;
+    return typeof path === "string" ? path : undefined;
   }
   return undefined;
 }

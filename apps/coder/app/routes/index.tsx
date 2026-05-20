@@ -1,7 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { CoderWorkspace } from "../coderui/features/Coder";
-import { loadCoderInitialDataFn } from "../features/Coder/server-fns";
-import type { CoderInitialData } from "../features/Coder/store/reducers/initialData";
+import { CoderWorkspace } from "../CoderWorkspace";
+import { loadCoderInitialDataFn } from "../features/connection/api/server-fns";
+import type { CoderInitialData } from "../features/conversation/state/initialData";
 
 export const Route = createFileRoute("/")({
   loader: async ({ location }) => {
@@ -28,11 +28,9 @@ export const Route = createFileRoute("/")({
 function IndexRoute() {
   const navigate = Route.useNavigate();
   const search = Route.useSearch();
-  const initialData = Route.useLoaderData() as CoderInitialData;
 
   return (
     <CoderWorkspace
-      initialData={initialData}
       onSelectChatRoute={(chatId) => {
         void navigate({ to: "/chats/$chatId", params: { chatId }, search });
       }}

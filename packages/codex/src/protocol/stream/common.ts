@@ -1,13 +1,7 @@
-import { z } from "zod";
-
 export type RecordValue = Record<string, unknown>;
 
 export const CODEX_RESPONSE_ITEM_COMPLETED_METHOD = "rawResponseItem/completed";
 export const CODEX_THREAD_START_EXTENDED_EVENTS_FIELD = "experimentalRawEvents";
-
-export const recordSchema = z.record(z.string(), z.unknown());
-export const emptyObjectSchema = z.object({}).passthrough();
-export const codexRequestIdSchema = z.union([z.string(), z.number()]).transform((id) => String(id));
 
 export function stableFallbackId(item: { type: string } & RecordValue): string {
   return `unknown-${item.type}-${hashString(stableStringify(item))}`;
@@ -23,6 +17,10 @@ export function stableTrafficId(kind: string, method: string, value: unknown): s
 
 export function asRecord(value: unknown): RecordValue {
   return isRecord(value) ? value : { value };
+}
+
+export function asOptionalRecord(value: unknown): RecordValue | undefined {
+  return isRecord(value) ? value : undefined;
 }
 
 export function stableStringify(value: unknown): string {
@@ -45,4 +43,23 @@ export function hashString(value: string): string {
 
 export function isRecord(value: unknown): value is RecordValue {
   return typeof value === "object" && value !== null;
+}
+
+export function stringValue(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
+export function numberValue(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+export function booleanValue(value: unknown): boolean | undefined {
+  return typeof value === "boolean" ? value : undefined;
+}
+
+export function requestIdValue(value: unknown): string | undefined {
+  if (typeof value === "string" || typeof value === "number") {
+    return String(value);
+  }
+  return undefined;
 }

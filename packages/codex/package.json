@@ -35,6 +35,9 @@
   "scripts": {
     "build": "tsdown",
     "dump:e2e": "tsx scripts/dump-e2e-scenario.ts",
+    "generate:protocol-types": "/Applications/Codex.app/Contents/Resources/codex app-server generate-ts --experimental --out src/protocol/generated/app-server",
+    "lint": "oxlint src scripts tsdown.config.ts",
+    "lint:fix": "oxlint --fix src scripts tsdown.config.ts",
     "typecheck": "tsgo --noEmit",
     "typecheck:tsc": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
@@ -43,8 +46,7 @@
   "dependencies": {
     "immer": "^11.1.8",
     "socket.io": "^4.8.3",
-    "socket.io-client": "^4.8.3",
-    "zod": "^4.2.0"
+    "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
     "@types/node": "^25.0.1",

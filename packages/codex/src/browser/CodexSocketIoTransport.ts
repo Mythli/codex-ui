@@ -130,8 +130,8 @@ export class CodexSocketIoTransport implements CodexTransport {
 
   private sendSocketInitialize(): Promise<void> {
     const params: CodexRequestParams<"initialize"> = {
-      clientInfo: { name: "codex-browser", version: "0.1.0" },
-      capabilities: { experimentalApi: true }
+      clientInfo: { name: "codex-browser", title: "Codex Browser", version: "0.1.0" },
+      capabilities: { experimentalApi: true, requestAttestation: false }
     };
     return new Promise<void>((resolve, reject) => {
       this.socket.emit("request", { method: "initialize", params }, (response: SocketIoResponse) => {

@@ -1,6 +1,4 @@
 export {
-  codexOptionsSchema,
-  messageRequestSchema,
   type CodexRunResult,
   type MessageRequest
 } from "./types.js";
@@ -13,13 +11,6 @@ export {
   CodexTrafficPacket,
   TraceReplayTransport,
   buildFileChangePatch,
-  codexProtocolDiagnosticTrafficSchema,
-  codexProtocolErrorResponseTrafficSchema,
-  codexProtocolEventTrafficSchema,
-  codexProtocolRequestTrafficSchema,
-  codexProtocolResponseTrafficSchema,
-  codexProtocolServerRequestTrafficSchema,
-  codexProtocolTrafficSchema,
   createCodexUIRuntime,
   currentCwd,
   buildCodexScenarioFixture,

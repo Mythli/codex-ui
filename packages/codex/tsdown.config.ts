@@ -9,6 +9,6 @@ export default defineConfig({
   outExtensions: ({ format }) =>
     format === "cjs" ? { js: ".cjs", dts: ".d.cts" } : { js: ".js", dts: ".d.ts" },
   deps: {
-    neverBundle: ["socket.io", "socket.io-client", "zod"]
+    neverBundle: ["socket.io", "socket.io-client"]
   }
 });

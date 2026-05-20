@@ -5,6 +5,7 @@ import { defineConfig } from "vite";
 import { appSocketPlugin } from "./api/app-socket";
 
 const codexRoot = path.resolve(__dirname, "../../packages/codex/src");
+const appRoot = path.resolve(__dirname, "app");
 
 export default defineConfig({
   resolve: {
@@ -26,12 +27,8 @@ export default defineConfig({
         replacement: path.resolve(codexRoot, "index.ts")
       },
       {
-        find: "@taylordb/coderui/style.css",
-        replacement: path.resolve(__dirname, "../../packages/coderui/src/theme.css")
-      },
-      {
-        find: "@taylordb/coderui",
-        replacement: path.resolve(__dirname, "../../packages/coderui/src/index.ts")
+        find: /^@app\/(.+)$/,
+        replacement: path.resolve(appRoot, "$1")
       }
     ]
   },

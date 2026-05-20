@@ -151,20 +151,11 @@ export class CodexThreadReducer {
       return true;
     }
     if (packet.kind === "request" && packet.method === "fs/readFile") {
-      const accepted = traffic.kind === "request" &&
+      const params = traffic.kind === "request" ? traffic.params as { path?: unknown } : {};
+      return traffic.kind === "request" &&
         traffic.method === "fs/readFile" &&
         Boolean(state.sessionPath) &&
-        traffic.params.path === state.sessionPath;
-      if (!accepted && traffic.kind === "request" && traffic.method === "fs/readFile") {
-        console.error(`[codex thread reduce] request:fs/readFile ${traffic.params.path}`, {
-          activeThreadId: this.threadId,
-          activeThreadShortId: this.threadId.slice(0, 8),
-          expectedSessionPath: state.sessionPath,
-          requestId: traffic.id,
-          requestPath: traffic.params.path
-        });
-      }
-      return accepted;
+        params.path === state.sessionPath;
     }
     if (packet.turnId && packet.turnId === state.activeTurnId) {
       return true;

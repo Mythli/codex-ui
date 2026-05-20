@@ -172,14 +172,20 @@ export class ClickAppPage {
     await expect(sendButton).toBeEnabled({ timeout: 10_000 });
 
     const watcherId = `prompt-turn-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    await this.page.evaluate(({ watcherId, text, timeoutMs, matchMode }) => {
+    await this.page.evaluate((payload) => {
+      const {
+        watcherId: turnWatcherId,
+        text: promptText,
+        timeoutMs: waitTimeoutMs,
+        matchMode: textMatchMode
+      } = payload;
       const browserWindow = window as typeof window & {
-        __codexPromptTurnWatchers?: Record<string, Promise<PromptTurnVisibilityResult>>;
+        codexPromptTurnWatchers?: Record<string, Promise<PromptTurnVisibilityResult>>;
       };
-      browserWindow.__codexPromptTurnWatchers ??= {};
+      browserWindow.codexPromptTurnWatchers ??= {};
 
       const normalize = (value: string) => value.replace(/\s+/g, " ").trim();
-      const targetText = normalize(text);
+      const targetText = normalize(promptText);
       const userMessageSelector = '[data-testid="transcript-user-message"]';
       const workBlockSelector = '[data-testid="transcript-work-block"][data-row-state="working"]';
 
@@ -206,16 +212,16 @@ export class ClickAppPage {
         reason,
         location: window.location.href,
         currentChatId: document.querySelector("[data-testid='coder-shell']")?.getAttribute("data-current-chat-id") ?? undefined,
-        matchMode,
+        matchMode: textMatchMode,
         promptValue: (document.querySelector("[data-testid='prompt-input']") as HTMLTextAreaElement | null)?.value ?? "",
-        targetText: text,
-        timeoutMs,
+        targetText: promptText,
+        timeoutMs: waitTimeoutMs,
         transcriptText: document.querySelector("[data-testid='chat-transcript']")?.textContent?.trim() ?? "",
         userMessageTexts: visibleUserMessageTexts(),
         workBlockTexts: visibleWorkBlockTexts()
       });
 
-      browserWindow.__codexPromptTurnWatchers[watcherId] = new Promise<PromptTurnVisibilityResult>((resolve) => {
+      browserWindow.codexPromptTurnWatchers[turnWatcherId] = new Promise<PromptTurnVisibilityResult>((resolve) => {
         const button = document.querySelector("[data-testid='send-prompt-button']");
         if (!button) {
           resolve(diagnostics("send button was not found"));
@@ -253,7 +259,7 @@ export class ClickAppPage {
         const hasVisibleMatchingUserMessage = () => visibleUserMessageTexts()
           .some((value) => {
             const normalized = normalize(value);
-            return matchMode === "contains"
+            return textMatchMode === "contains"
               ? normalized.includes(targetText)
               : normalized === targetText;
           });
@@ -278,10 +284,10 @@ export class ClickAppPage {
               workBlockElapsedMs,
               location: window.location.href,
               currentChatId: document.querySelector("[data-testid='coder-shell']")?.getAttribute("data-current-chat-id") ?? undefined,
-              matchMode,
+              matchMode: textMatchMode,
               promptValue: (document.querySelector("[data-testid='prompt-input']") as HTMLTextAreaElement | null)?.value ?? "",
-              targetText: text,
-              timeoutMs,
+              targetText: promptText,
+              timeoutMs: waitTimeoutMs,
               transcriptText: document.querySelector("[data-testid='chat-transcript']")?.textContent?.trim() ?? "",
               userMessageTexts: visibleUserMessageTexts(),
               workBlockTexts: visibleWorkBlockTexts()
@@ -306,7 +312,7 @@ export class ClickAppPage {
               userMessageElapsedMs,
               workBlockElapsedMs
             });
-          }, timeoutMs);
+          }, waitTimeoutMs);
         }
 
         button.addEventListener("click", handleClick, { once: true, capture: true });
@@ -317,18 +323,18 @@ export class ClickAppPage {
     }, { watcherId, text, timeoutMs, matchMode });
 
     await sendButton.click();
-    const result = await this.page.evaluate(async (watcherId): Promise<PromptTurnVisibilityResult> => {
+    const result = await this.page.evaluate(async (registeredWatcherId): Promise<PromptTurnVisibilityResult> => {
       const browserWindow = window as typeof window & {
-        __codexPromptTurnWatchers?: Record<string, Promise<PromptTurnVisibilityResult>>;
+        codexPromptTurnWatchers?: Record<string, Promise<PromptTurnVisibilityResult>>;
       };
-      const watcher = browserWindow.__codexPromptTurnWatchers?.[watcherId];
+      const watcher = browserWindow.codexPromptTurnWatchers?.[registeredWatcherId];
       if (!watcher) {
-        throw new Error(`Prompt turn watcher ${watcherId} was not registered.`);
+        throw new Error(`Prompt turn watcher ${registeredWatcherId} was not registered.`);
       }
       try {
         return await watcher;
       } finally {
-        delete browserWindow.__codexPromptTurnWatchers?.[watcherId];
+        delete browserWindow.codexPromptTurnWatchers?.[registeredWatcherId];
       }
     }, watcherId);
 
@@ -356,7 +362,20 @@ export class ClickAppPage {
   async waitForAssistantText(textOrPattern: string | RegExp, timeoutMs = 120_000): Promise<void> {
     const transcript = this.page.getByTestId("chat-transcript");
     await expect(transcript).toBeVisible({ timeout: timeoutMs });
-    await expect(transcript).toContainText(textOrPattern, { timeout: timeoutMs });
+    const assistantMessages = this.page.getByTestId("transcript-assistant-message");
+    await expect.poll(async () => {
+      const messages = await assistantMessages.allTextContents();
+      return messages.some((message) => {
+        if (typeof textOrPattern === "string") {
+          return message.includes(textOrPattern);
+        }
+        textOrPattern.lastIndex = 0;
+        return textOrPattern.test(message);
+      });
+    }, {
+      message: `expected an assistant message containing ${String(textOrPattern)}`,
+      timeout: timeoutMs
+    }).toBe(true);
   }
 
   async expectUserMessageTextCount(
@@ -480,7 +499,7 @@ export class ClickAppPage {
     const state = await this.page.locator(`[data-testid="chat-switcher-chat"][data-chat-id="${this.cssString(threadId)}"]`).first()
       .evaluate((row) => {
         const project = row.closest("[data-testid='chat-switcher-project']");
-        const header = project?.querySelector("[role='button'][aria-expanded]");
+        const header = project?.querySelector("button[aria-expanded], [role='button'][aria-expanded]");
         const list = row.closest("[data-testid='chat-switcher-project-chats']");
         return {
           headerExpanded: header?.getAttribute("aria-expanded"),

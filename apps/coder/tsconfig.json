@@ -1,34 +1,21 @@
 {
+  "extends": "../../packages/tsconfig/react-library.json",
   "compilerOptions": {
-    "target": "ES2022",
     "useDefineForClassFields": true,
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "module": "ESNext",
-    "skipLibCheck": true,
-    "moduleResolution": "Bundler",
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
+    "declaration": false,
+    "declarationMap": false,
     "noEmit": true,
-    "jsx": "react-jsx",
-    "strict": true,
-    "esModuleInterop": true,
-    "ignoreDeprecations": "6.0",
     "types": ["node"],
     "paths": {
       "@taylordb/codex/browser": ["../../packages/codex/src/browser.ts"],
       "@taylordb/codex/server": ["../../packages/codex/src/server.ts"],
       "@taylordb/codex/protocol": ["../../packages/codex/src/protocol.ts"],
       "@taylordb/codex": ["../../packages/codex/src/index.ts"],
-      "@taylordb/coderui": ["../../packages/coderui/src/index.ts"],
-      "@taylordb/coderui/style.css": ["../../packages/coderui/src/theme.css"]
+      "@app/*": ["./app/*"]
     }
   },
-  "include": [
-    "../../packages/coderui/src/env.d.ts",
-    "app/**/*.ts",
-    "app/**/*.tsx",
-    "api/**/*.ts",
-    "e2e/**/*.ts"
-  ]
+  "include": ["app/**/*.ts", "app/**/*.tsx", "api/**/*.ts", "e2e/**/*.ts"]
 }

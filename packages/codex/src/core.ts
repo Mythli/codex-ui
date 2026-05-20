@@ -69,13 +69,6 @@ export {
 export {
   CodexTrafficPacket,
   codexCanonicalRequestId,
-  codexProtocolDiagnosticTrafficSchema,
-  codexProtocolErrorResponseTrafficSchema,
-  codexProtocolEventTrafficSchema,
-  codexProtocolRequestTrafficSchema,
-  codexProtocolResponseTrafficSchema,
-  codexProtocolServerRequestTrafficSchema,
-  codexProtocolTrafficSchema,
   createCodexWireParserMiddleware,
   createCodexWireStitcher,
   parseCodexProtocolTraffic,

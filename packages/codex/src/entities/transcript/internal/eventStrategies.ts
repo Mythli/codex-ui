@@ -239,7 +239,9 @@ function updateReasoningDelta(
   const turnId = params.turnId;
   const itemId = params.itemId;
   const delta = params.delta;
-  const index = method === "item/reasoning/summaryTextDelta" ? params.summaryIndex : params.contentIndex;
+  const index = method === "item/reasoning/summaryTextDelta"
+    ? "summaryIndex" in params ? params.summaryIndex : undefined
+    : "contentIndex" in params ? params.contentIndex : undefined;
   if (!turnId || !itemId || !delta || typeof index !== "number") {
     return state;
   }

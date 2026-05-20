@@ -177,10 +177,10 @@ export function secondsToMs(value: number | undefined): number | undefined {
 function commandAction(action: CodexParsedCommandAction): CodexTranscriptCommandAction {
   return {
     type: action.type,
-    command: action.command ?? action.cmd,
-    name: action.name,
-    path: action.path,
-    query: action.query
+    command: action.command,
+    name: "name" in action ? action.name : undefined,
+    path: "path" in action ? action.path : undefined,
+    query: "query" in action ? action.query : undefined
   };
 }
 
@@ -190,7 +190,7 @@ function projectUserInput(itemId: string, content: readonly CodexParsedUserInput
 } {
   const attachments: CodexTranscriptAttachment[] = [];
   const text = content.flatMap((entry, entryIndex) => {
-    if (entry.type === "text" || entry.type === "input_text") {
+    if (entry.type === "text") {
       const projected = projectAttachmentReferences(itemId, entryIndex, entry.text);
       attachments.push(...projected.attachments);
       return projected.text ? [projected.text] : [];
@@ -265,17 +265,6 @@ function userInputImages(itemId: string, content: readonly CodexParsedUserInput[
       return isImagePath(entry.path, asset)
         ? [pathImage(`${itemId}-image-${index}`, entry.path, asset, "Attached image")]
         : [];
-    }
-    if (entry.type === "input_image") {
-      const asset = assetOf(entry as typeof entry & AssetBearing);
-      return [{
-        id: `${itemId}-image-${index}`,
-        kind: asset ? "asset" : entry.image_url.startsWith("data:") ? "dataUrl" : "url",
-        asset,
-        url: asset?.url ?? (entry.image_url.startsWith("data:") ? undefined : entry.image_url),
-        dataUrl: entry.image_url.startsWith("data:") ? entry.image_url : undefined,
-        alt: "Attached image"
-      }];
     }
     return [];
   });
@@ -365,7 +354,6 @@ function fileChange(change: Extract<CodexParsedThreadItem, { type: "fileChange" 
     path: change.path,
     action: fileActionLabel(change.kind?.type),
     additions: stats.additions,
-    content: change.content,
     deletions: stats.deletions,
     diff: change.diff,
     kind: change.kind,

@@ -78,7 +78,7 @@ describe("CodexActionPlanner permissions and image input", () => {
         threadId: "thread-1",
         input: [
           { type: "text", text: "look at this", text_elements: [] },
-          { type: "input_image", image_url: "data:image/png;base64,aaa" }
+          { type: "image", url: "data:image/png;base64,aaa" }
         ],
         cwd: "/workspace/project",
         sandbox: "workspace-write",
@@ -102,7 +102,7 @@ describe("CodexActionPlanner permissions and image input", () => {
         sandboxPolicy: { type: "workspaceWrite" },
         input: [
           { type: "text", text: "look at this", text_elements: [] },
-          { type: "input_image", image_url: "data:image/png;base64,aaa" }
+          { type: "image", url: "data:image/png;base64,aaa" }
         ]
       }
     });

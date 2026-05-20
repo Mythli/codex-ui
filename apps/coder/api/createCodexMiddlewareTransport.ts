@@ -264,8 +264,8 @@ class CodexMiddlewareTransport implements CodexTransport {
     }
   }
 
-  private rememberCwd(params: object): void {
-    if (!("threadId" in params) || typeof params.threadId !== "string" || !("cwd" in params) || typeof params.cwd !== "string") {
+  private rememberCwd(params: unknown): void {
+    if (!params || typeof params !== "object" || !("threadId" in params) || typeof params.threadId !== "string" || !("cwd" in params) || typeof params.cwd !== "string") {
       return;
     }
     this.cwdByThreadId.set(params.threadId, params.cwd);

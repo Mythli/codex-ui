@@ -1,7 +1,5 @@
 export * from "./core.js";
 export {
-  codexOptionsSchema,
-  messageRequestSchema,
   type CodexRunResult,
   type MessageRequest
 } from "./types.js";

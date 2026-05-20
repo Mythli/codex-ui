@@ -1,179 +1,19 @@
-import { z } from "zod";
+import type {
+  CodexAppServerThread,
+  CodexAppServerThreadItem,
+  CodexAppServerTurn,
+  CodexAppServerUserInput
+} from "../types.js";
 import {
-  recordSchema,
+  asRecord,
   stableFallbackId,
+  stringValue,
   type RecordValue
 } from "./common.js";
 
-export const codexTextElementSchema = recordSchema;
-
-export const codexUserInputSchema = z.discriminatedUnion("type", [
-  z.object({
-    type: z.literal("text"),
-    text: z.string(),
-    text_elements: z.array(codexTextElementSchema).default([])
-  }).passthrough(),
-  z.object({
-    type: z.literal("image"),
-    url: z.string()
-  }).passthrough(),
-  z.object({
-    type: z.literal("localImage"),
-    path: z.string()
-  }).passthrough(),
-  z.object({
-    type: z.literal("skill"),
-    name: z.string(),
-    path: z.string()
-  }).passthrough(),
-  z.object({
-    type: z.literal("mention"),
-    name: z.string(),
-    path: z.string()
-  }).passthrough(),
-  z.object({
-    type: z.literal("input_image"),
-    image_url: z.string()
-  }).passthrough(),
-  z.object({
-    type: z.literal("input_text"),
-    text: z.string()
-  }).passthrough()
-]);
-
-const fileChangeKindSchema = z.object({
-  type: z.string().optional(),
-  move_path: z.string().nullable().optional()
-}).passthrough();
-
-export const codexCommandActionSchema = z.object({
-  type: z.string().optional(),
-  command: z.string().optional(),
-  cmd: z.string().optional(),
-  name: z.string().optional(),
-  path: z.string().nullable().optional(),
-  query: z.string().nullable().optional()
-}).passthrough();
-
-export const codexFileUpdateChangeSchema = z.object({
-  path: z.string(),
-  kind: fileChangeKindSchema.optional(),
-  diff: z.string().optional(),
-  content: z.string().optional()
-}).passthrough();
-
-export const knownThreadItemSchema = z.discriminatedUnion("type", [
-  z.object({
-    type: z.literal("userMessage"),
-    id: z.string(),
-    content: z.array(codexUserInputSchema)
-  }).passthrough(),
-  z.object({
-    type: z.literal("hookPrompt"),
-    id: z.string(),
-    fragments: z.array(z.unknown()).default([])
-  }).passthrough(),
-  z.object({
-    type: z.literal("agentMessage"),
-    id: z.string(),
-    text: z.string().default(""),
-    phase: z.string().nullable().optional(),
-    memoryCitation: z.unknown().nullable().optional()
-  }).passthrough(),
-  z.object({
-    type: z.literal("plan"),
-    id: z.string(),
-    text: z.string().default("")
-  }).passthrough(),
-  z.object({
-    type: z.literal("reasoning"),
-    id: z.string(),
-    summary: z.array(z.string()).default([]),
-    content: z.array(z.string()).default([])
-  }).passthrough(),
-  z.object({
-    type: z.literal("commandExecution"),
-    id: z.string(),
-    command: z.string().default(""),
-    cwd: z.string().default(""),
-    processId: z.string().nullable().optional(),
-    source: z.string().optional(),
-    status: z.string().optional(),
-    commandActions: z.array(codexCommandActionSchema).default([]),
-    aggregatedOutput: z.string().nullable().optional(),
-    exitCode: z.number().nullable().optional(),
-    durationMs: z.number().nullable().optional()
-  }).passthrough(),
-  z.object({
-    type: z.literal("fileChange"),
-    id: z.string(),
-    changes: z.array(codexFileUpdateChangeSchema).default([]),
-    status: z.string().optional()
-  }).passthrough(),
-  z.object({
-    type: z.literal("mcpToolCall"),
-    id: z.string(),
-    server: z.string().default("server"),
-    tool: z.string().default("tool"),
-    status: z.string().optional(),
-    arguments: z.unknown().optional(),
-    result: z.unknown().nullable().optional(),
-    error: z.unknown().nullable().optional(),
-    durationMs: z.number().nullable().optional()
-  }).passthrough(),
-  z.object({
-    type: z.literal("dynamicToolCall"),
-    id: z.string(),
-    namespace: z.string().nullable().optional(),
-    tool: z.string().default("tool"),
-    arguments: z.unknown().optional(),
-    status: z.string().optional(),
-    contentItems: z.unknown().nullable().optional(),
-    success: z.boolean().nullable().optional(),
-    durationMs: z.number().nullable().optional()
-  }).passthrough(),
-  z.object({
-    type: z.literal("collabAgentToolCall"),
-    id: z.string(),
-    tool: z.string().default("agent"),
-    status: z.string().optional(),
-    prompt: z.string().nullable().optional(),
-    agentsStates: z.unknown().optional()
-  }).passthrough(),
-  z.object({
-    type: z.literal("webSearch"),
-    id: z.string(),
-    query: z.string().default(""),
-    action: z.unknown().nullable().optional()
-  }).passthrough(),
-  z.object({
-    type: z.literal("imageView"),
-    id: z.string(),
-    path: z.string()
-  }).passthrough(),
-  z.object({
-    type: z.literal("imageGeneration"),
-    id: z.string(),
-    status: z.string().optional(),
-    revisedPrompt: z.string().nullable().optional(),
-    result: z.string().default(""),
-    savedPath: z.string().nullable().optional()
-  }).passthrough(),
-  z.object({
-    type: z.literal("enteredReviewMode"),
-    id: z.string(),
-    review: z.string().optional()
-  }).passthrough(),
-  z.object({
-    type: z.literal("exitedReviewMode"),
-    id: z.string(),
-    review: z.string().optional()
-  }).passthrough(),
-  z.object({
-    type: z.literal("contextCompaction"),
-    id: z.string()
-  }).passthrough()
-]);
+type CommandExecutionItem = Extract<CodexAppServerThreadItem, { type: "commandExecution" }>;
+type FileChangeItem = Extract<CodexAppServerThreadItem, { type: "fileChange" }>;
+type AgentMessageItem = Extract<CodexAppServerThreadItem, { type: "agentMessage" }>;
 
 export type CodexUnknownThreadItem = {
   type: "unsupported";
@@ -183,61 +23,64 @@ export type CodexUnknownThreadItem = {
   readonly __codexUnknownThreadItem: true;
 };
 
-type CodexKnownThreadItem = z.infer<typeof knownThreadItemSchema>;
+export type CodexParsedThreadItem = CodexAppServerThreadItem | CodexUnknownThreadItem;
+export type CodexParsedCommandAction = CommandExecutionItem["commandActions"][number];
+export type CodexParsedUserInput = CodexAppServerUserInput & {
+  asset?: unknown;
+};
+export type CodexParsedTurn = Omit<CodexAppServerTurn, "items"> & {
+  items: CodexParsedThreadItem[];
+};
+export type CodexParsedThread = Omit<CodexAppServerThread, "turns"> & {
+  turns: CodexParsedTurn[];
+};
+export type CodexThreadItem = CodexParsedThreadItem;
+export type CodexFileUpdateChange = FileChangeItem["changes"][number] & {
+  asset?: unknown;
+};
 
-export type CodexParsedThreadItem = CodexKnownThreadItem | CodexUnknownThreadItem;
-export type CodexParsedCommandAction = z.infer<typeof codexCommandActionSchema>;
+const knownThreadItemTypes = new Set<string>([
+  "userMessage",
+  "hookPrompt",
+  "agentMessage",
+  "plan",
+  "reasoning",
+  "commandExecution",
+  "fileChange",
+  "mcpToolCall",
+  "dynamicToolCall",
+  "collabAgentToolCall",
+  "webSearch",
+  "imageView",
+  "imageGeneration",
+  "enteredReviewMode",
+  "exitedReviewMode",
+  "contextCompaction"
+]);
 
-export const codexLooseThreadItemSchema = z.object({
-  id: z.string().optional(),
-  type: z.string()
-}).passthrough().transform((item): CodexParsedThreadItem => {
-  const parsed = knownThreadItemSchema.safeParse(item);
-  if (parsed.success) {
-    return parsed.data as CodexParsedThreadItem;
+export function parseCodexThreadItem(value: unknown): CodexParsedThreadItem | undefined {
+  const item = asRecord(value);
+  const type = stringValue(item.type);
+  if (!type) {
+    return undefined;
+  }
+  if (knownThreadItemTypes.has(type)) {
+    const id = stringValue(item.id);
+    if (!id) {
+      return undefined;
+    }
+    return {
+      ...item,
+      id
+    } as CodexAppServerThreadItem;
   }
   return {
     type: "unsupported",
-    id: item.id ?? stableFallbackId(item),
-    originalType: item.type,
+    id: stringValue(item.id) ?? stableFallbackId({ ...item, type }),
+    originalType: type,
     payload: item,
     __codexUnknownThreadItem: true
   };
-});
-
-export const codexTurnSchema = z.object({
-  id: z.string(),
-  itemsView: z.string().optional(),
-  status: z.string().optional(),
-  error: z.unknown().nullable().optional(),
-  startedAt: z.number().nullable().optional(),
-  completedAt: z.number().nullable().optional(),
-  durationMs: z.number().nullable().optional(),
-  items: z.array(codexLooseThreadItemSchema).default([])
-}).passthrough();
-
-export const codexThreadSchema = z.object({
-  id: z.string(),
-  name: z.string().nullable().optional(),
-  preview: z.string().nullable().optional(),
-  cwd: z.string().nullable().optional(),
-  path: z.string().nullable().optional(),
-  source: z.string().optional(),
-  model: z.string().optional(),
-  modelProvider: z.string().optional(),
-  createdAt: z.union([z.string(), z.number(), z.date()]).optional(),
-  updatedAt: z.union([z.string(), z.number(), z.date()]).optional(),
-  turns: z.array(codexTurnSchema).default([])
-}).passthrough();
-
-export type CodexParsedUserInput = z.infer<typeof codexUserInputSchema>;
-export type CodexParsedTurn = z.infer<typeof codexTurnSchema>;
-export type CodexParsedThread = z.infer<typeof codexThreadSchema>;
-export type CodexThreadItem = CodexParsedThreadItem;
-
-export function parseCodexThreadItem(value: unknown): CodexParsedThreadItem | undefined {
-  const parsed = codexLooseThreadItemSchema.safeParse(value);
-  return parsed.success ? parsed.data : undefined;
 }
 
 export function createCodexUserMessageItem(input: {
@@ -261,9 +104,9 @@ export function createCodexAgentMessageItem(input: {
     type: "agentMessage",
     id: input.id,
     text: input.text,
-    phase: input.phase ?? null,
+    phase: normalizeMessagePhase(input.phase),
     memoryCitation: input.memoryCitation ?? null
-  };
+  } as AgentMessageItem;
 }
 
 export function createCodexPlanItem(input: {
@@ -308,24 +151,54 @@ export function createCodexCommandExecutionItem(input: {
     command: input.command ?? "",
     cwd: input.cwd ?? "",
     processId: input.processId ?? null,
-    source: input.source ?? "agent",
-    status: input.status ?? "inProgress",
+    source: normalizeCommandSource(input.source),
+    status: normalizeExecutionStatus(input.status),
     commandActions: [...(input.commandActions ?? [])],
     aggregatedOutput: input.aggregatedOutput ?? null,
     exitCode: input.exitCode ?? null,
     durationMs: input.durationMs ?? null
-  };
+  } as CommandExecutionItem;
 }
 
 export function createCodexFileChangeItem(input: {
   id: string;
-  changes?: readonly z.infer<typeof codexFileUpdateChangeSchema>[];
+  changes?: readonly CodexFileUpdateChange[];
   status?: string;
 }): CodexParsedThreadItem {
   return {
     type: "fileChange",
     id: input.id,
     changes: [...(input.changes ?? [])],
-    status: input.status
-  };
+    status: normalizePatchStatus(input.status)
+  } as FileChangeItem;
+}
+
+function normalizeMessagePhase(value: string | null | undefined): AgentMessageItem["phase"] {
+  return value === "commentary" || value === "final_answer" ? value : null;
+}
+
+function normalizeCommandSource(value: string | undefined): CommandExecutionItem["source"] {
+  if (
+    value === "agent" ||
+    value === "userShell" ||
+    value === "unifiedExecStartup" ||
+    value === "unifiedExecInteraction"
+  ) {
+    return value;
+  }
+  return "agent";
+}
+
+function normalizeExecutionStatus(value: string | undefined): CommandExecutionItem["status"] {
+  if (value === "completed" || value === "failed" || value === "declined") {
+    return value;
+  }
+  return "inProgress";
+}
+
+function normalizePatchStatus(value: string | undefined): FileChangeItem["status"] {
+  if (value === "completed" || value === "failed" || value === "declined") {
+    return value;
+  }
+  return "inProgress";
 }

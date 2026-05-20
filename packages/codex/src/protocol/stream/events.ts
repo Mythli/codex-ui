@@ -1,161 +1,53 @@
-import { z } from "zod";
+import type {
+  CodexAppServerNotificationMethod,
+  CodexAppServerNotificationParams,
+  CodexAppServerServerNotification
+} from "../types.js";
 import {
-  CODEX_RESPONSE_ITEM_COMPLETED_METHOD,
   asRecord,
-  recordSchema,
+  numberValue,
   stableFallbackEventId,
+  stringValue,
   type RecordValue
 } from "./common.js";
-import {
-  codexFileUpdateChangeSchema,
-  codexLooseThreadItemSchema,
-  codexThreadSchema,
-  codexTurnSchema
-} from "./thread-items.js";
 import { responseItemToThreadItem } from "./response-items.js";
+import { parseCodexThreadItem, type CodexParsedThreadItem, type CodexParsedTurn } from "./thread-items.js";
 
-const codexThreadStatusSchema = z.object({
-  type: z.string()
-}).passthrough();
+type GeneratedEventParams<M extends CodexAppServerNotificationMethod> =
+  CodexAppServerNotificationParams<M>;
 
-const codexTokenUsageBreakdownSchema = z.object({
-  totalTokens: z.number(),
-  inputTokens: z.number(),
-  cachedInputTokens: z.number(),
-  outputTokens: z.number(),
-  reasoningOutputTokens: z.number()
-}).passthrough();
-
-const codexFlexibleTokenUsageBreakdownSchema = z.preprocess((value) => {
-  const record = asRecord(value);
-  return {
-    ...record,
-    totalTokens: record.totalTokens ?? record.total_tokens,
-    inputTokens: record.inputTokens ?? record.input_tokens,
-    cachedInputTokens: record.cachedInputTokens ?? record.cached_input_tokens,
-    outputTokens: record.outputTokens ?? record.output_tokens,
-    reasoningOutputTokens: record.reasoningOutputTokens ?? record.reasoning_output_tokens
+type TurnNotificationParams<M extends "turn/started" | "turn/completed"> =
+  Omit<GeneratedEventParams<M>, "turn"> & {
+    turn?: CodexParsedTurn;
+    turnId?: string;
   };
-}, codexTokenUsageBreakdownSchema);
 
-const codexThreadTokenUsageSchema = z.object({
-  total: codexFlexibleTokenUsageBreakdownSchema,
-  last: codexFlexibleTokenUsageBreakdownSchema,
-  modelContextWindow: z.number().nullable()
-}).passthrough();
-
-const codexFlexibleThreadTokenUsageSchema = z.preprocess((value) => {
-  const record = asRecord(value);
-  return {
-    ...record,
-    total: record.total ?? record.total_token_usage,
-    last: record.last ?? record.last_token_usage,
-    modelContextWindow: record.modelContextWindow ?? record.model_context_window ?? null
+type ItemLifecycleParams<M extends "item/started" | "item/completed"> =
+  Omit<GeneratedEventParams<M>, "item"> & {
+    item: CodexParsedThreadItem;
   };
-}, codexThreadTokenUsageSchema);
 
-const codexThreadTokenUsageUpdatedSchema = z.preprocess((value) => {
-  const record = asRecord(value);
-  return {
-    ...record,
-    threadId: record.threadId ?? record.thread_id,
-    turnId: record.turnId ?? record.turn_id,
-    tokenUsage: record.tokenUsage ?? record.token_usage
+type RawResponseItemCompletedParams =
+  Omit<GeneratedEventParams<"rawResponseItem/completed">, "item"> & {
+    item?: CodexParsedThreadItem;
   };
-}, z.object({
-  threadId: z.string(),
-  turnId: z.string().optional(),
-  tokenUsage: codexFlexibleThreadTokenUsageSchema
-}).passthrough());
 
-export const codexEventSchemasByMethod = {
-  "thread/started": z.object({ thread: codexThreadSchema }).passthrough(),
-  "thread/status/changed": z.object({ threadId: z.string(), status: codexThreadStatusSchema }).passthrough(),
-  "thread/tokenUsage/updated": codexThreadTokenUsageUpdatedSchema,
-  "thread/archived": z.object({ threadId: z.string() }).passthrough(),
-  "thread/compacted": z.object({ threadId: z.string(), turnId: z.string() }).passthrough(),
-  "model/rerouted": z.object({ threadId: z.string(), turnId: z.string(), fromModel: z.string(), toModel: z.string(), reason: z.unknown() }).passthrough(),
-  "model/verification": z.object({ threadId: z.string(), turnId: z.string(), verifications: z.array(z.unknown()) }).passthrough(),
-  "turn/started": z.object({ threadId: z.string().optional(), turnId: z.string().optional(), turn: codexTurnSchema.optional() }).passthrough(),
-  "turn/completed": z.object({ threadId: z.string().optional(), turnId: z.string().optional(), turn: codexTurnSchema.optional() }).passthrough(),
-  "turn/diff/updated": z.object({ threadId: z.string(), turnId: z.string(), diff: z.string() }).passthrough(),
-  "item/started": z.object({
-    threadId: z.string(),
-    turnId: z.string(),
-    item: codexLooseThreadItemSchema,
-    startedAtMs: z.number().optional()
-  }).passthrough(),
-  "item/completed": z.object({
-    threadId: z.string(),
-    turnId: z.string(),
-    item: codexLooseThreadItemSchema,
-    completedAtMs: z.number().optional()
-  }).passthrough(),
-  [CODEX_RESPONSE_ITEM_COMPLETED_METHOD]: z.object({
-    item: z.unknown().optional()
-  }).passthrough().transform((params) => ({
-    ...params,
-    item: params.item ? responseItemToThreadItem(params.item) : undefined
-  })),
-  "item/agentMessage/delta": z.object({ threadId: z.string().optional(), turnId: z.string().optional(), itemId: z.string(), delta: z.string() }).passthrough(),
-  "item/plan/delta": z.object({ threadId: z.string().optional(), turnId: z.string().optional(), itemId: z.string(), delta: z.string() }).passthrough(),
-  "item/reasoning/summaryPartAdded": z.object({ threadId: z.string().optional(), turnId: z.string().optional(), itemId: z.string(), summaryIndex: z.number() }).passthrough(),
-  "item/reasoning/summaryTextDelta": z.object({ threadId: z.string().optional(), turnId: z.string().optional(), itemId: z.string(), summaryIndex: z.number(), delta: z.string() }).passthrough(),
-  "item/reasoning/textDelta": z.object({ threadId: z.string().optional(), turnId: z.string().optional(), itemId: z.string(), contentIndex: z.number(), delta: z.string() }).passthrough(),
-  "item/commandExecution/outputDelta": z.object({ threadId: z.string().optional(), turnId: z.string().optional(), itemId: z.string(), delta: z.string() }).passthrough(),
-  "item/fileChange/patchUpdated": z.object({ threadId: z.string().optional(), turnId: z.string().optional(), itemId: z.string(), changes: z.array(codexFileUpdateChangeSchema) }).passthrough(),
-  "account/rateLimits/updated": z.object({ rateLimits: recordSchema }).passthrough(),
-  "mcpServer/startupStatus/updated": z.object({ name: z.string(), status: z.string(), error: z.unknown().nullable().optional() }).passthrough(),
-  "remoteControl/status/changed": z.object({ status: z.string(), installationId: z.string().optional(), environmentId: z.string().nullable().optional() }).passthrough(),
-  deprecationNotice: z.object({ summary: z.string(), details: z.string().optional() }).passthrough()
-} as const;
+type ThreadUnarchivedParams = GeneratedEventParams<"thread/unarchived"> & {
+  thread?: GeneratedEventParams<"thread/started">["thread"];
+};
 
-export const codexNotificationSchema = z.object({
-  method: z.string(),
-  params: recordSchema.default({})
-}).passthrough();
-
-export const codexItemNotificationSchema = codexNotificationSchema.extend({
-  method: z.union([z.literal("item/started"), z.literal("item/completed")]),
-  params: z.object({
-    threadId: z.string(),
-    turnId: z.string(),
-    item: codexLooseThreadItemSchema,
-    startedAtMs: z.number().optional(),
-    completedAtMs: z.number().optional()
-  }).passthrough()
-});
-
-export const codexTurnNotificationSchema = codexNotificationSchema.extend({
-  method: z.union([z.literal("turn/started"), z.literal("turn/completed")]),
-  params: z.object({
-    threadId: z.string().optional(),
-    turnId: z.string().optional(),
-    turn: codexTurnSchema.optional()
-  }).passthrough()
-});
-
-export const codexDeltaNotificationSchema = codexNotificationSchema.extend({
-  method: z.union([
-    z.literal("item/agentMessage/delta"),
-    z.literal("item/plan/delta"),
-    z.literal("item/reasoning/summaryPartAdded"),
-    z.literal("item/reasoning/summaryTextDelta"),
-    z.literal("item/reasoning/textDelta"),
-    z.literal("item/commandExecution/outputDelta"),
-    z.literal("item/fileChange/patchUpdated")
-  ]),
-  params: recordSchema
-});
-
-export const codexRolloutEntrySchema = z.object({
-  type: z.string(),
-  payload: z.unknown().optional()
-}).passthrough();
-
-export const codexResponseItemSchema = z.object({
-  type: z.string()
-}).passthrough();
+export type CodexProtocolEventByMethod = {
+  [M in CodexAppServerNotificationMethod]:
+    M extends "turn/started" | "turn/completed"
+      ? TurnNotificationParams<M>
+      : M extends "item/started" | "item/completed"
+        ? ItemLifecycleParams<M>
+        : M extends "rawResponseItem/completed"
+          ? RawResponseItemCompletedParams
+          : M extends "thread/unarchived"
+            ? ThreadUnarchivedParams
+            : GeneratedEventParams<M>;
+};
 
 export type CodexUnknownEvent = {
   method: "unknown";
@@ -168,14 +60,10 @@ export type CodexUnknownEvent = {
 
 export type CodexUnknownNotification = CodexUnknownEvent;
 
-export type CodexProtocolEventByMethod = {
-  [M in keyof typeof codexEventSchemasByMethod]: z.infer<(typeof codexEventSchemasByMethod)[M]>;
-};
-
 export type CodexKnownProtocolEvent = {
   [M in keyof CodexProtocolEventByMethod]: {
     method: M;
-    params: CodexProtocolEventByMethod[M] & RecordValue;
+    params: CodexProtocolEventByMethod[M];
   }
 }[keyof CodexProtocolEventByMethod];
 
@@ -183,27 +71,90 @@ export type CodexKnownNotification = CodexKnownProtocolEvent;
 export type CodexParsedNotification = CodexKnownProtocolEvent | CodexUnknownEvent;
 export type CodexProtocolEvent = CodexParsedNotification;
 
+const knownNotificationMethods = new Set<string>([
+  "error",
+  "thread/started",
+  "thread/status/changed",
+  "thread/archived",
+  "thread/unarchived",
+  "thread/closed",
+  "thread/name/updated",
+  "thread/goal/updated",
+  "thread/goal/cleared",
+  "thread/tokenUsage/updated",
+  "turn/started",
+  "hook/started",
+  "turn/completed",
+  "hook/completed",
+  "turn/diff/updated",
+  "turn/plan/updated",
+  "item/started",
+  "item/autoApprovalReview/started",
+  "item/autoApprovalReview/completed",
+  "item/completed",
+  "rawResponseItem/completed",
+  "item/agentMessage/delta",
+  "item/plan/delta",
+  "command/exec/outputDelta",
+  "process/outputDelta",
+  "process/exited",
+  "item/commandExecution/outputDelta",
+  "item/commandExecution/terminalInteraction",
+  "item/fileChange/outputDelta",
+  "item/fileChange/patchUpdated",
+  "serverRequest/resolved",
+  "item/mcpToolCall/progress",
+  "mcpServer/oauthLogin/completed",
+  "mcpServer/startupStatus/updated",
+  "account/updated",
+  "account/rateLimits/updated",
+  "app/list/updated",
+  "remoteControl/status/changed",
+  "externalAgentConfig/import/completed",
+  "fs/changed",
+  "item/reasoning/summaryTextDelta",
+  "item/reasoning/summaryPartAdded",
+  "item/reasoning/textDelta",
+  "thread/compacted",
+  "model/rerouted",
+  "model/verification",
+  "warning",
+  "guardianWarning",
+  "deprecationNotice",
+  "configWarning",
+  "fuzzyFileSearch/sessionUpdated",
+  "fuzzyFileSearch/sessionCompleted",
+  "thread/realtime/started",
+  "thread/realtime/itemAdded",
+  "thread/realtime/transcript/delta",
+  "thread/realtime/transcript/done",
+  "thread/realtime/outputAudio/delta",
+  "thread/realtime/sdp",
+  "thread/realtime/error",
+  "thread/realtime/closed",
+  "windows/worldWritableWarning",
+  "windowsSandbox/setupCompleted",
+  "account/login/completed"
+] satisfies CodexAppServerServerNotification["method"][]);
+
 export function parseCodexNotification(value: unknown): CodexParsedNotification | undefined {
-  const parsed = codexNotificationSchema.safeParse(value);
-  if (!parsed.success) {
+  const notification = asRecord(value);
+  const method = stringValue(notification.method);
+  if (!method) {
     return undefined;
   }
-
-  const method = parsed.data.method;
-  const schema = codexEventSchemasByMethod[method as keyof typeof codexEventSchemasByMethod];
-  if (!schema) {
-    return unknownEventFromValue(parsed.data);
+  if (!knownNotificationMethods.has(method)) {
+    return unknownEventFromValue(notification);
   }
-  const params = schema.safeParse(parsed.data.params ?? {});
-  if (!params.success) {
-    return unknownEventFromValue(parsed.data);
-  }
-  return { method, params: params.data } as CodexParsedNotification;
+  return {
+    method,
+    params: normalizeNotificationParams(method, notification.params)
+  } as CodexParsedNotification;
 }
 
 export function unknownEventFromValue(value: unknown): CodexUnknownEvent {
   const payload = asRecord(value);
-  const method = typeof payload.method === "string" ? payload.method : "unknown";
+  const method = stringValue(payload.method) ?? "unknown";
   return {
     method: "unknown",
     id: stableFallbackEventId({ ...payload, method }),
@@ -211,5 +162,78 @@ export function unknownEventFromValue(value: unknown): CodexUnknownEvent {
     params: asRecord(payload.params),
     payload,
     __codexUnknownEvent: true
+  };
+}
+
+function normalizeNotificationParams(method: string, value: unknown): RecordValue {
+  const params = asRecord(value);
+  switch (method) {
+    case "thread/tokenUsage/updated":
+      return {
+        ...params,
+        threadId: params.threadId ?? params.thread_id,
+        turnId: params.turnId ?? params.turn_id,
+        tokenUsage: normalizeThreadTokenUsage(params.tokenUsage ?? params.token_usage)
+      };
+    case "turn/started":
+    case "turn/completed": {
+      const turn = normalizeTurn(params.turn);
+      return {
+        ...params,
+        threadId: params.threadId ?? params.thread_id,
+        turnId: params.turnId ?? params.turn_id ?? turn?.id,
+        turn
+      };
+    }
+    case "item/started":
+    case "item/completed": {
+      const item = parseCodexThreadItem(params.item);
+      return item ? { ...params, item } : params;
+    }
+    case "rawResponseItem/completed": {
+      const item = responseItemToThreadItem(params.item);
+      return item ? { ...params, item } : params;
+    }
+    default:
+      return params;
+  }
+}
+
+function normalizeTurn(value: unknown): CodexParsedTurn | undefined {
+  const turn = asRecord(value);
+  const id = stringValue(turn.id);
+  if (!id) {
+    return undefined;
+  }
+  const items = Array.isArray(turn.items)
+    ? turn.items.flatMap((item) => {
+      const parsed = parseCodexThreadItem(item);
+      return parsed ? [parsed] : [];
+    })
+    : [];
+  return {
+    ...turn,
+    id,
+    items
+  } as CodexParsedTurn;
+}
+
+function normalizeThreadTokenUsage(value: unknown) {
+  const usage = asRecord(value);
+  return {
+    total: normalizeTokenUsageBreakdown(usage.total ?? usage.total_token_usage),
+    last: normalizeTokenUsageBreakdown(usage.last ?? usage.last_token_usage),
+    modelContextWindow: numberValue(usage.modelContextWindow ?? usage.model_context_window) ?? null
+  };
+}
+
+function normalizeTokenUsageBreakdown(value: unknown) {
+  const usage = asRecord(value);
+  return {
+    totalTokens: numberValue(usage.totalTokens ?? usage.total_tokens) ?? 0,
+    inputTokens: numberValue(usage.inputTokens ?? usage.input_tokens) ?? 0,
+    cachedInputTokens: numberValue(usage.cachedInputTokens ?? usage.cached_input_tokens) ?? 0,
+    outputTokens: numberValue(usage.outputTokens ?? usage.output_tokens) ?? 0,
+    reasoningOutputTokens: numberValue(usage.reasoningOutputTokens ?? usage.reasoning_output_tokens) ?? 0
   };
 }

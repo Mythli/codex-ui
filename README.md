@@ -1,10 +1,9 @@
 # TaylorDB Coder
 
-This repo is a pnpm workspace for a full-stack TanStack Coder app and a reusable Coder UI package.
+This repo is a pnpm workspace for a full-stack TanStack Coder app and reusable Codex app-server utilities.
 
 - `apps/coder`: TanStack Start app with the Codex API mounted as server-side app infrastructure.
 - `packages/codex`: reusable Codex app-server transport and resource library.
-- `packages/coderui`: presentational React UI library for the Coder shell.
 - `bak/`: reference material from the learning UI/TanStack app; not part of active builds.
 
 ## Requirements
@@ -25,19 +24,19 @@ and then falls back to `codex` from `PATH`.
 
 ```sh
 pnpm install
-pnpm dev --port 41731
+pnpm dev:start
 ```
 
 Open:
 
 ```txt
-http://localhost:41731/
+http://127.0.0.1:5173/
 ```
 
 Health check:
 
 ```sh
-curl http://localhost:41731/api/health
+curl http://127.0.0.1:5173/api/health
 ```
 
 ## Scripts
@@ -52,13 +51,13 @@ Starts `apps/coder` with Vite/TanStack Start.
 pnpm build
 ```
 
-Builds `@taylordb/coderui` with tsup and `@taylordb/coder` with TanStack Start.
+Builds `@taylordb/codex` and `@taylordb/coder`.
 
 ```sh
 pnpm typecheck
 ```
 
-Runs TypeScript checks for the app and UI package.
+Runs TypeScript checks for workspace packages.
 
 ```sh
 pnpm test
@@ -72,8 +71,9 @@ Runs workspace tests where present.
 
 - `app/routes`: TanStack file routes.
 - `app/core`: router and Query client setup.
-- `app/features/Coder`: connected app feature code, adapters, hooks, and types.
-- `api/core`: Hono API mount.
+- `app/features`: frontend feature code, feature-local state, hooks, and connected components.
+- `app/common`: app-wide pure UI primitives, providers, and shared UI types.
+- `app/store`: root Redux store composition and typed hooks.
 - `api/core`: Hono API mount backed by `@taylordb/codex`.
 
 `packages/codex` owns reusable Codex logic:
@@ -91,12 +91,11 @@ contracts.
 App-specific Codex behavior, such as `/codex-assets` serving and image/file
 normalization, lives in `apps/coder/api/core`.
 
-`packages/coderui` owns reusable UI:
+Coder frontend UI lives inside `apps/coder/app`:
 
-- `src/common`: primitives like Button, Badge, Input, Spinner, EmptyState, Markdown.
-- `src/features/Coder/pure`: prop-driven Coder shell primitives.
-- `src/theme.css`: shared UI tokens and base styles.
-- `src/index.ts`: public package entry.
+- `app/common/pure`: primitives like Button, Badge, Input, Spinner, EmptyState, Markdown.
+- `app/features/*/pure`: prop-driven feature view components and their stories.
+- `app/theme.css`: shared UI tokens and base styles.
 
 ## API Routes
 
@@ -114,26 +113,6 @@ The app exposes the Codex API under `/api`:
 
 The streaming routes return newline-delimited JSON.
 
-## UI Package
-
-Build the UI package directly:
-
-```sh
-pnpm --filter @taylordb/coderui build
-```
-
-Dry-run the package contents:
-
-```sh
-cd packages/coderui
-npm pack --dry-run
-```
-
-The package exports:
-
-- `@taylordb/coderui`
-- `@taylordb/coderui/style.css`
-
 ## Codex Library
 
 Build the Codex package directly:
@@ -142,12 +121,10 @@ Build the Codex package directly:
 pnpm --filter @taylordb/codex build
 ```
 
-The package exports the same high-level helpers used by the app API:
+The package exports the reusable pieces used by the app:
 
-- `runCodex`
-- `streamCodex`
-- `listCodexChats`
-- `listCodexProjects`
-- `listCodexModels`
-- `readCodexChat`
-- `messageRequestSchema`
+- generated Codex app-server protocol aliases via `@taylordb/codex/protocol`
+- app-server, replay, and Socket.IO transports
+- request planning helpers such as `planStartThread`, `planSendMessage`, and `planOpenThread`
+- thread index and transcript reducers
+- render-block projection types for the Coder UI

@@ -532,5 +532,5 @@ function toSandboxPolicy(
       excludeSlashTmp: false
     };
   }
-  return { type: "readOnly" };
+  return { type: "readOnly", networkAccess: false };
 }

@@ -69,27 +69,31 @@ export async function readCodexFileWithDiagnostics<M extends CodexRequestMethod>
   }
 }
 
-export function fileReadPath(params: object): string | undefined {
-  return "path" in params && typeof params.path === "string" ? params.path : undefined;
+export function fileReadPath(params: unknown): string | undefined {
+  return isRecord(params) && typeof params.path === "string" ? params.path : undefined;
 }
 
 export function shouldReadLocally(path: string | undefined): path is string {
   return Boolean(path?.endsWith(".jsonl"));
 }
 
-export function responseCwd(response: object): string | undefined {
-  const thread = "thread" in response && response.thread && typeof response.thread === "object"
+export function responseCwd(response: unknown): string | undefined {
+  const thread = isRecord(response) && response.thread && typeof response.thread === "object"
     ? response.thread
     : undefined;
   return thread && "cwd" in thread && typeof thread.cwd === "string" ? thread.cwd : undefined;
 }
 
-export function requestCwd(params: object): string | undefined {
-  return "cwd" in params && typeof params.cwd === "string" ? params.cwd : undefined;
+export function requestCwd(params: unknown): string | undefined {
+  return isRecord(params) && typeof params.cwd === "string" ? params.cwd : undefined;
 }
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }
 
 export type { CodexParsedFsReadFileResponse };

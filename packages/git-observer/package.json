@@ -29,6 +29,8 @@
   ],
   "scripts": {
     "build": "tsdown",
+    "lint": "oxlint src tsdown.config.ts",
+    "lint:fix": "oxlint --fix src tsdown.config.ts",
     "typecheck": "tsgo --noEmit",
     "typecheck:tsc": "tsc --noEmit",
     "test": "vitest run"

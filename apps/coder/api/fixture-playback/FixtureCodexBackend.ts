@@ -59,7 +59,9 @@ export class FixtureCodexBackend implements CodexTransport {
 
     if (method === "thread/list") {
       return this.emitSyntheticResponse(method, params, {
-        data: this.hasVisibleThread() ? [this.syntheticThread()] : []
+        data: this.hasVisibleThread() ? [this.syntheticThread()] : [],
+        nextCursor: null,
+        backwardsCursor: null
       } as CodexProtocolResponse<M>, options);
     }
     if (method === "thread/read") {
@@ -77,7 +79,8 @@ export class FixtureCodexBackend implements CodexTransport {
         data: [
           { id: "gpt-5.5", model: "gpt-5.5", displayName: "OpenAI: GPT-5.5", isDefault: true },
           { id: "gpt-5.4", model: "gpt-5.4", displayName: "OpenAI: GPT-5.4" }
-        ]
+        ],
+        nextCursor: null
       } as CodexProtocolResponse<M>, options);
     }
     if (
@@ -232,7 +235,7 @@ export class FixtureCodexBackend implements CodexTransport {
   private loadedSteps(): Array<() => void> {
     return [
       () => this.emitSyntheticRequest("thread/list", { limit: 100, cwd: null }),
-      () => this.emitSyntheticResponseOnly("thread/list", { data: [this.syntheticThread()] }),
+      () => this.emitSyntheticResponseOnly("thread/list", { data: [this.syntheticThread()], nextCursor: null, backwardsCursor: null }),
       () => this.emitSyntheticRequest("thread/read", { threadId: activeThreadId(this.definition.fixture), includeTurns: true }),
       () => this.emitSyntheticResponseOnly("thread/read", { thread: this.syntheticThread() }),
       () => this.emitSyntheticRequest("fs/readFile", { path: this.syntheticThread().path }),
@@ -281,12 +284,23 @@ export class FixtureCodexBackend implements CodexTransport {
     const preview = firstUserMessagePreview(turns) ?? this.definition.label;
     return {
       id: activeThreadId(fixture),
+      sessionId: activeThreadId(fixture),
+      forkedFromId: null,
       name: this.definition.label,
       preview,
+      ephemeral: false,
+      modelProvider: "openai",
       cwd: defaultCwd(fixture),
       path: `fixture://${this.definition.id}/${activeThreadId(fixture)}.jsonl`,
       createdAt: Math.round(startedAtMs / 1000),
       updatedAt: Math.round(completedAtMs / 1000),
+      status: { type: "idle" as const },
+      cliVersion: fixture.metadata.codexVersion,
+      source: "appServer" as const,
+      threadSource: "user" as const,
+      agentNickname: null,
+      agentRole: null,
+      gitInfo: null,
       turns: options.includeTurns ? turns : []
     };
   }

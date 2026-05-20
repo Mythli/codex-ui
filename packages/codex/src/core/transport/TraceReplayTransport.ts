@@ -50,8 +50,8 @@ export class TraceReplayTransport implements CodexTransport {
 
   async initialize(): Promise<void> {
     await this.request("initialize", {
-      clientInfo: { name: "codex-api", version: "0.1.0" },
-      capabilities: { experimentalApi: true }
+      clientInfo: { name: "codex-api", title: "Codex API", version: "0.1.0" },
+      capabilities: { experimentalApi: true, requestAttestation: false }
     });
     this.notify("initialized");
   }
@@ -112,7 +112,7 @@ export class TraceReplayTransport implements CodexTransport {
     if (stdin.message?.method !== method) {
       throw new Error(`Trace expected notify ${stdin.message?.method ?? "(missing)"}, got ${method}`);
     }
-    this.emitTraffic(parseCodexProtocolRequestTraffic(method, params ?? {}, { id: `notify-${this.cursor}` }));
+    this.emitTraffic(parseCodexProtocolRequestTraffic(method as CodexRequestMethod, params ?? {}, { id: `notify-${this.cursor}` }));
   }
 
   onTraffic(listener: (traffic: CodexProtocolTraffic) => void): () => void {
