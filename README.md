@@ -24,7 +24,14 @@ and then falls back to `codex` from `PATH`.
 
 ```sh
 pnpm install
-pnpm dev:start
+pnpm dev
+```
+
+Start the production server after a build:
+
+```sh
+pnpm build
+pnpm start
 ```
 
 Open:
