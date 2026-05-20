@@ -53,6 +53,7 @@ listenerMiddleware.startListening({
     const method = action.payload.event.method === "unknown"
       ? action.payload.event.eventMethod
       : action.payload.event.method;
+    const params = action.payload.event.params as Record<string, unknown>;
     const selectedThreadId = state.selection.current.kind === "thread"
       ? state.selection.current.threadId
       : undefined;
@@ -60,8 +61,12 @@ listenerMiddleware.startListening({
       listenerApi.dispatch(threadUnreadCleared(threadId));
       return;
     }
-    if (method === "turn/completed" || method === "thread/status/changed") {
+    if (method === "turn/completed" || (method === "thread/status/changed" && !isActiveThreadStatus(params.status))) {
       listenerApi.dispatch(threadUnreadMarked(threadId));
     }
   }
 });
+
+function isActiveThreadStatus(status: unknown): boolean {
+  return Boolean(status && typeof status === "object" && "type" in status && status.type === "active");
+}

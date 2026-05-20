@@ -1,8 +1,5 @@
 export type RecordValue = Record<string, unknown>;
 
-export const CODEX_RESPONSE_ITEM_COMPLETED_METHOD = "rawResponseItem/completed";
-export const CODEX_THREAD_START_EXTENDED_EVENTS_FIELD = "experimentalRawEvents";
-
 export function stableFallbackId(item: { type: string } & RecordValue): string {
   return `unknown-${item.type}-${hashString(stableStringify(item))}`;
 }

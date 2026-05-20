@@ -96,7 +96,7 @@ export class CodexThreadIndexReducer {
 
     if (
       traffic.kind === "response" &&
-      (traffic.method === "thread/read" || traffic.method === "thread/start" || traffic.method === "thread/resume")
+      (traffic.method === "thread/start" || traffic.method === "thread/resume" || traffic.method === "thread/read")
     ) {
       const thread = threadFromResponse(traffic.response);
       return thread ? finalizeState(upsertThread(state, thread)) : state;

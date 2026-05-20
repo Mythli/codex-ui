@@ -46,19 +46,10 @@ export class CodexThreadReducer {
 }
 ```
 
-```ts
-export type CodexUIRuntime = {
-  readonly state: CodexThreadState;
-  readonly actions: CodexUIRuntimeActions;
-  dispatch(traffic: CodexProtocolTraffic): void;
-  subscribe(listener: (state: CodexThreadState) => void): () => void;
-  close(): void;
-};
-```
-
-UI code should normally use `createCodexUIRuntime(...)`, subscribe to state changes,
-render `state.renderBlocks`, and call runtime actions. It should not parse protocol,
-shape transcript items, or infer activity grouping.
+UI code should feed typed `CodexProtocolTraffic` into reducers, render
+`state.renderBlocks`, and send protocol requests through its own app state layer.
+It should not parse raw protocol JSON, shape transcript items, or infer activity
+grouping.
 
 ## The Principles
 
@@ -107,17 +98,16 @@ transport.onTraffic((traffic) => {
 Avoid parallel event systems such as loose `event` callbacks, partial transcript
 deltas, or bespoke UI action protocols that duplicate Codex protocol concepts.
 
-### 4. Runtime Owns Connections And Actions
+### 4. App State Owns Connections And Actions
 
-The runtime owns socket/transport subscription and exposes user-facing actions.
-Actions send Codex protocol requests. They do not directly mutate transcript or render
-state.
+The application owns socket/transport subscription and user-facing actions. Actions
+send Codex protocol requests and may optimistically dispatch typed protocol request
+traffic. They do not directly mutate transcript or render state.
 
 Good:
 
 ```ts
-await runtime.actions.openThread(threadId);
-await runtime.actions.sendMessage(input);
+dispatch(codexTrafficReceived(parseCodexProtocolRequestTraffic("turn/start", params, context)));
 ```
 
 Bad:
@@ -126,8 +116,8 @@ Bad:
 setLocalUiState(fakeUserMessage);
 ```
 
-If the backend emits the right traffic, the runtime and reducer should naturally
-arrive at the right UI state.
+If the backend emits the right traffic, the reducers should naturally arrive at the
+right UI state.
 
 ### 5. A Thread Reducer Is Scoped
 

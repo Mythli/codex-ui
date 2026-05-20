@@ -13,7 +13,15 @@ export function CommandDetails({ entry }: { entry: CodexCommandEntry }) {
   const success = entry.exitCode === undefined || entry.exitCode === null || entry.exitCode === 0;
 
   return (
-    <section aria-label="Command details" className={styles.commandDetails} data-testid="command-details" data-work-entry-type="command">
+    <section
+      aria-label={`Command details for ${entry.title}`}
+      className={styles.commandDetails}
+      data-command={entry.command ?? ""}
+      data-testid="command-details"
+      data-work-entry-state={entry.status}
+      data-work-entry-title={entry.title}
+      data-work-entry-type="command"
+    >
       <div className={styles.shellCard}>
         <div className={styles.shellTitle}>Shell</div>
         <pre className={styles.shellCommand}><span className={styles.shellPrompt}>$</span> {command}</pre>
@@ -28,7 +36,14 @@ export function CommandDetails({ entry }: { entry: CodexCommandEntry }) {
 
 export function ToolDetails({ entry }: { entry: CodexToolEntry }) {
   return (
-    <section aria-label="Tool details" className={styles.toolDetails} data-testid="tool-details" data-work-entry-type="tool">
+    <section
+      aria-label={`Tool details for ${entry.title}`}
+      className={styles.toolDetails}
+      data-testid="tool-details"
+      data-work-entry-state={entry.status}
+      data-work-entry-title={entry.title}
+      data-work-entry-type="tool"
+    >
       {entry.status ? <DetailLine>status: {entry.status}</DetailLine> : null}
       {entry.images?.length ? <TranscriptImageStrip blockId={entry.id} compact images={entry.images} /> : null}
       {entry.arguments !== undefined ? <JsonDetails label="arguments" value={entry.arguments} /> : null}

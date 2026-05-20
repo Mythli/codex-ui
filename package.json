@@ -27,8 +27,6 @@
     "storybook:tail": "pnpm --filter @taylordb/coder storybook:tail",
     "storybook:attach": "pnpm --filter @taylordb/coder storybook:attach",
     "build": "pnpm -r --if-present build",
-    "codex:e2e:dump": "pnpm --filter @taylordb/codex dump:e2e",
-    "codex:e2e:capture": "pnpm --filter @taylordb/codex test:e2e:capture",
     "test:e2e:click": "pnpm --filter @taylordb/coder test:e2e:click",
     "typecheck": "pnpm -r --if-present typecheck",
     "typecheck:tsc": "pnpm -r --if-present typecheck:tsc",
@@ -36,7 +34,7 @@
     "lint:fix": "oxlint --fix apps packages",
     "format": "prettier --write . --ignore-unknown",
     "format:check": "prettier --check . --ignore-unknown",
-    "test": "pnpm --filter @taylordb/codex test"
+    "test": "pnpm test:e2e:click"
   },
   "devDependencies": {
     "@tsdown/css": "^0.22.0",

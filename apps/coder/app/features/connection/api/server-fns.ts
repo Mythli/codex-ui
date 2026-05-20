@@ -24,8 +24,8 @@ export const loadCoderInitialDataFn = createServerFn({ method: "GET" })
     loadCoderInitialData(data) as unknown as Record<string, any>);
 
 export async function loadCoderInitialData(input: LoadCoderInitialDataInput = {}): Promise<CoderInitialData> {
-  const { getSharedCodexBackend } = await import("../../../../api/codex-backend");
-  const backend = getSharedCodexBackend();
+  const { getDependencies } = await import("../../../../api/core/dependencies");
+  const backend = getDependencies().liveBackend;
   const [threadIndex, models, config] = await Promise.all([
     loadThreadIndex(),
     loadModels().catch(() => []),

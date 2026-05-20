@@ -38,3 +38,4 @@ apps/coder/e2e/click/test-results/
 .idea/
 !.idea/.gitignore
 logs
+bak

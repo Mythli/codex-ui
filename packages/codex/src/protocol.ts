@@ -1,6 +1,4 @@
 export {
-  CODEX_RESPONSE_ITEM_COMPLETED_METHOD,
-  CODEX_THREAD_START_EXTENDED_EVENTS_FIELD,
   CodexTrafficPacket,
   codexCanonicalRequestId,
   createCodexWireParserMiddleware,
@@ -14,7 +12,6 @@ export {
   parseCodexResponse,
   parseRolloutJsonlEntries,
   parseRolloutJsonlTokenUsage,
-  parseResponseItemThreadItems,
   parseRolloutJsonlThreadItemsByTurn,
   parseRolloutJsonlThreadTurns,
   parseRolloutTokenUsage,
@@ -77,7 +74,6 @@ export type {
   CodexAppServerRequestId,
   CodexAppServerRequestMethod,
   CodexAppServerRequestParams,
-  CodexAppServerResponseItem,
   CodexAppServerSandboxMode,
   CodexAppServerSandboxPolicy,
   CodexAppServerServerNotification,

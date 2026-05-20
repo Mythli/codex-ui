@@ -1,5 +1,15 @@
 import { expect, type Locator, type Page, type TestInfo } from "@playwright/test";
+import { mkdir } from "node:fs/promises";
+import { dirname, resolve as resolvePath } from "node:path";
+import { fileURLToPath } from "node:url";
 import { io } from "socket.io-client";
+
+const supportDir = dirname(fileURLToPath(import.meta.url));
+const defaultMessageWorkspaceCwd = resolvePath(supportDir, "../../../test-results/click-message-workspace");
+
+export const CLICK_MESSAGE_WORKSPACE_CWD = process.env.CODER_E2E_MESSAGE_WORKSPACE_CWD
+  ? resolvePath(process.env.CODER_E2E_MESSAGE_WORKSPACE_CWD)
+  : defaultMessageWorkspaceCwd;
 
 export type ClickThread = {
   projectId?: string;
@@ -30,6 +40,59 @@ type PromptTurnVisibilityResult = {
   workBlockTexts: string[];
 };
 
+type TranscriptStateSignature = {
+  rows: TranscriptRowSignature[];
+  rowCount: number;
+  text: string;
+};
+
+type TranscriptRowSignature = {
+  ariaLabel: string | null;
+  controls: Array<{
+    disabled: boolean;
+    expanded: string | null;
+    label: string | null;
+    testId: string | null;
+    text: string;
+  }>;
+  fileCards: Array<{
+    label: string | null;
+    files: Array<{
+      open: boolean;
+      stats: string[];
+      text: string;
+    }>;
+    stats: string[];
+    text: string;
+  }>;
+  images: Array<{
+    alt: string | null;
+    testId: string | null;
+  }>;
+  index: number;
+  links: Array<{
+    href: string | null;
+    text: string;
+  }>;
+  role: string | null;
+  rowFinal: string | null;
+  rowState: string | null;
+  rowType: string | null;
+  testId: string | null;
+  text: string;
+  workEntries: Array<{
+    callCount: string | null;
+    command: string | null;
+    expanded: string | null;
+    hasDetails: string | null;
+    state: string | null;
+    testId: string | null;
+    title: string | null;
+    type: string | null;
+  }>;
+  workEntryCount: string | null;
+};
+
 export class ClickAppPage {
   private draftPreviousThreadId?: string;
 
@@ -40,20 +103,36 @@ export class ClickAppPage {
 
   async gotoLiveApp(): Promise<void> {
     await this.page.goto("/");
+    await this.waitForLiveAppReady();
+  }
+
+  async gotoLiveAppInMessageWorkspace(cwd = CLICK_MESSAGE_WORKSPACE_CWD): Promise<void> {
+    const seedThread = await this.ensureWorkspaceThread(cwd);
+    await this.page.goto(`/chats/${seedThread.threadId}`);
+    await this.waitForLiveAppReady();
+    await this.expectCurrentProject(cwd);
+  }
+
+  async expectCurrentProject(projectId = CLICK_MESSAGE_WORKSPACE_CWD): Promise<void> {
+    await expect(this.page.getByTestId("coder-shell"))
+      .toHaveAttribute("data-current-project-id", projectId, { timeout: 20_000 });
+  }
+
+  private async waitForLiveAppReady(): Promise<void> {
     await this.page.getByTestId("coder-shell").waitFor({ timeout: 20_000 });
     await this.page.getByRole("button", { name: "Open sidebar" }).waitFor({ timeout: 20_000 });
     await this.expectNoAppError();
     await this.expectBackendModelListReady();
   }
 
-  async latestBackendThreads(limit: number): Promise<ClickThread[]> {
+  async latestBackendThreads(limit: number, options: { cwd?: string | null } = {}): Promise<ClickThread[]> {
     const response = await this.requestCodex("thread/list", {
       limit,
       sortKey: "updated_at",
       sortDirection: "desc",
       sourceKinds: [],
       archived: false,
-      cwd: null
+      cwd: options.cwd ?? null
     });
     const data = response && typeof response === "object" && "data" in response
       ? (response as { data?: unknown }).data
@@ -67,6 +146,37 @@ export class ClickAppPage {
         }]
         : [])
       : [];
+  }
+
+  private async ensureWorkspaceThread(cwd: string): Promise<ClickThread> {
+    await mkdir(cwd, { recursive: true });
+
+    const existingThread = (await this.latestBackendThreads(20, { cwd }))
+      .find((thread) => thread.projectId === cwd);
+    if (existingThread) {
+      return existingThread;
+    }
+
+    const response = await this.requestCodex("thread/start", {
+      cwd,
+      model: null,
+      modelProvider: null,
+      approvalPolicy: "never",
+      sandbox: "workspace-write",
+      ephemeral: false,
+      persistExtendedHistory: true
+    });
+    const thread = response && typeof response === "object" && "thread" in response
+      ? (response as { thread?: unknown }).thread
+      : undefined;
+    if (!thread || typeof thread !== "object" || !("id" in thread) || typeof thread.id !== "string") {
+      throw new Error(`Could not seed click e2e workspace ${cwd}: ${JSON.stringify(response)}`);
+    }
+
+    return {
+      projectId: cwd,
+      threadId: thread.id
+    };
   }
 
   async visibleThreads(limit: number): Promise<ClickThread[]> {
@@ -155,6 +265,7 @@ export class ClickAppPage {
   async sendPromptAndExpectTurnWithin(
     text: string,
     options: {
+      expectedUserMessageText?: string;
       expectNoComposerAttachmentsBeforeSend?: boolean;
       matchMode?: "exact" | "contains";
       timeoutMs?: number;
@@ -175,7 +286,7 @@ export class ClickAppPage {
     await this.page.evaluate((payload) => {
       const {
         watcherId: turnWatcherId,
-        text: promptText,
+        expectedText,
         timeoutMs: waitTimeoutMs,
         matchMode: textMatchMode
       } = payload;
@@ -185,9 +296,12 @@ export class ClickAppPage {
       browserWindow.codexPromptTurnWatchers ??= {};
 
       const normalize = (value: string) => value.replace(/\s+/g, " ").trim();
-      const targetText = normalize(promptText);
+      const targetText = normalize(expectedText);
       const userMessageSelector = '[data-testid="transcript-user-message"]';
-      const workBlockSelector = '[data-testid="transcript-work-block"][data-row-state="working"]';
+      const activeTurnSelector = [
+        '[data-testid="transcript-work-block"][data-row-state="working"]',
+        '[data-testid="thinking-placeholder"][data-row-state="working"]'
+      ].join(", ");
 
       const isVisible = (element: Element) => {
         const style = window.getComputedStyle(element);
@@ -204,7 +318,7 @@ export class ClickAppPage {
         .map((element) => element.textContent?.trim() ?? "");
 
       const visibleUserMessageTexts = () => visibleTexts(userMessageSelector);
-      const visibleWorkBlockTexts = () => visibleTexts(workBlockSelector);
+      const visibleWorkBlockTexts = () => visibleTexts(activeTurnSelector);
 
       const diagnostics = (reason: string, startedAt?: number): PromptTurnVisibilityResult => ({
         ok: false,
@@ -214,7 +328,7 @@ export class ClickAppPage {
         currentChatId: document.querySelector("[data-testid='coder-shell']")?.getAttribute("data-current-chat-id") ?? undefined,
         matchMode: textMatchMode,
         promptValue: (document.querySelector("[data-testid='prompt-input']") as HTMLTextAreaElement | null)?.value ?? "",
-        targetText: promptText,
+        targetText: expectedText,
         timeoutMs: waitTimeoutMs,
         transcriptText: document.querySelector("[data-testid='chat-transcript']")?.textContent?.trim() ?? "",
         userMessageTexts: visibleUserMessageTexts(),
@@ -286,7 +400,7 @@ export class ClickAppPage {
               currentChatId: document.querySelector("[data-testid='coder-shell']")?.getAttribute("data-current-chat-id") ?? undefined,
               matchMode: textMatchMode,
               promptValue: (document.querySelector("[data-testid='prompt-input']") as HTMLTextAreaElement | null)?.value ?? "",
-              targetText: promptText,
+              targetText: expectedText,
               timeoutMs: waitTimeoutMs,
               transcriptText: document.querySelector("[data-testid='chat-transcript']")?.textContent?.trim() ?? "",
               userMessageTexts: visibleUserMessageTexts(),
@@ -320,7 +434,7 @@ export class ClickAppPage {
           finish(diagnostics("send button click was not observed"));
         }, 10_000);
       });
-    }, { watcherId, text, timeoutMs, matchMode });
+    }, { watcherId, expectedText: options.expectedUserMessageText ?? text, timeoutMs, matchMode });
 
     await sendButton.click();
     const result = await this.page.evaluate(async (registeredWatcherId): Promise<PromptTurnVisibilityResult> => {
@@ -359,12 +473,26 @@ export class ClickAppPage {
     await expect(this.page.getByTestId("composer-attachments")).toHaveCount(0, { timeout: 10_000 });
   }
 
+  async sendFilesOnly(filePaths: string[]): Promise<void> {
+    await this.page.getByTestId("composer-file-input").setInputFiles(filePaths);
+    await expect(this.page.getByTestId("composer-attachments").locator("img, [aria-hidden='true']").first())
+      .toBeVisible({ timeout: 10_000 });
+    await expect(this.page.getByTestId("send-prompt-button")).toBeEnabled({ timeout: 10_000 });
+    await this.page.getByTestId("send-prompt-button").click();
+    await expect(this.page.getByTestId("composer-attachments")).toHaveCount(0, { timeout: 30_000 });
+  }
+
   async waitForAssistantText(textOrPattern: string | RegExp, timeoutMs = 120_000): Promise<void> {
     const transcript = this.page.getByTestId("chat-transcript");
     await expect(transcript).toBeVisible({ timeout: timeoutMs });
     const assistantMessages = this.page.getByTestId("transcript-assistant-message");
     await expect.poll(async () => {
-      const messages = await assistantMessages.allTextContents();
+      const messages = await assistantMessages.allTextContents().catch((error: unknown) => {
+        if (error instanceof Error && /Execution context was destroyed|navigation/i.test(error.message)) {
+          return [];
+        }
+        throw error;
+      });
       return messages.some((message) => {
         if (typeof textOrPattern === "string") {
           return message.includes(textOrPattern);
@@ -376,6 +504,40 @@ export class ClickAppPage {
       message: `expected an assistant message containing ${String(textOrPattern)}`,
       timeout: timeoutMs
     }).toBe(true);
+  }
+
+  async expectCurrentChatReloadsToSameTranscriptState(options: {
+    label?: string;
+    timeoutMs?: number;
+  } = {}): Promise<void> {
+    const label = options.label ?? "current-chat-reload-transcript-state";
+    const timeoutMs = options.timeoutMs ?? 30_000;
+    const threadId = await this.currentThreadId(timeoutMs);
+    const live = await this.currentTranscriptStateSignature();
+
+    await this.page.reload();
+    await this.waitForRouteThreadId(threadId, timeoutMs);
+    await this.expectHydratedWorkspace(threadId);
+    const reloaded = await this.currentTranscriptStateSignature();
+
+    try {
+      expect(
+        reloaded,
+        `${label}: reloaded transcript should match live transcript for ${threadId}`
+      ).toEqual(live);
+    } catch (error) {
+      if (this.testInfo) {
+        await this.testInfo.attach(`${label}-live.json`, {
+          body: JSON.stringify(live, null, 2),
+          contentType: "application/json"
+        });
+        await this.testInfo.attach(`${label}-reloaded.json`, {
+          body: JSON.stringify(reloaded, null, 2),
+          contentType: "application/json"
+        });
+      }
+      throw error;
+    }
   }
 
   async expectUserMessageTextCount(
@@ -430,16 +592,26 @@ export class ClickAppPage {
     });
   }
 
-  async waitForRenderedTranscriptImage(timeoutMs = 30_000): Promise<void> {
-    const image = this.page.getByTestId("transcript-user-message").locator("img[alt='Attached image']").first();
-    await expect(image).toBeVisible({ timeout: timeoutMs });
-    await expect.poll(async () => image.evaluate((element) => {
-      if (!(element instanceof HTMLImageElement)) {
+  async waitForRenderedTranscriptImage(timeoutMs = 30_000, expectedCount = 1): Promise<void> {
+    const images = this.page.getByTestId("transcript-user-message").locator("img[alt='Attached image']");
+    await expect(images).toHaveCount(expectedCount, { timeout: timeoutMs });
+    await expect.poll(async () => images.evaluateAll((elements) => {
+      if (elements.length === 0) {
         return false;
       }
-      return element.complete && element.naturalWidth > 0 && element.naturalHeight > 0;
+      return elements.every((element) => {
+        if (!(element instanceof HTMLImageElement)) {
+          return false;
+        }
+        const source = element.currentSrc || element.src;
+        return Boolean(source) &&
+          !source.startsWith("file:") &&
+          element.complete &&
+          element.naturalWidth > 0 &&
+          element.naturalHeight > 0;
+      });
     }), {
-      message: "attached transcript image should load with non-zero dimensions",
+      message: `${expectedCount} attached transcript image(s) should load from browser-safe sources with non-zero dimensions`,
       timeout: timeoutMs
     }).toBe(true);
   }
@@ -550,9 +722,40 @@ export class ClickAppPage {
     , options.includeActive ?? true);
   }
 
+  async expectSwitcherThreadRunning(threadId: string, timeoutMs = 30_000): Promise<void> {
+    await this.openSwitcher();
+    const row = this.switcherChatRow(threadId);
+    await row.waitFor({ timeout: timeoutMs });
+    await expect(row).toHaveAttribute("data-running", "true", { timeout: timeoutMs });
+    const runningIndicator = row.getByTestId("chat-switcher-chat-running");
+    await expect(runningIndicator).toBeVisible({ timeout: timeoutMs });
+    await expect(runningIndicator).toHaveJSProperty("tagName", "OUTPUT");
+    await expect(runningIndicator).not.toHaveCSS("animation-name", "none");
+    await expect(row).not.toHaveAttribute("data-unread", "true");
+    await expect(row.getByTestId("chat-switcher-chat-unread")).toHaveCount(0);
+  }
+
+  async expectSwitcherThreadUnread(threadId: string, timeoutMs = 30_000): Promise<void> {
+    await this.openSwitcher();
+    const row = this.switcherChatRow(threadId);
+    await row.waitFor({ timeout: timeoutMs });
+    await expect(row).toHaveAttribute("data-unread", "true", { timeout: timeoutMs });
+    await expect(row.getByTestId("chat-switcher-chat-unread")).toBeVisible({ timeout: timeoutMs });
+    await expect(row).not.toHaveAttribute("data-running", "true");
+    await expect(row.getByTestId("chat-switcher-chat-running")).toHaveCount(0);
+  }
+
+  async expectSwitcherThreadNotUnread(threadId: string, timeoutMs = 30_000): Promise<void> {
+    await this.openSwitcher();
+    const row = this.switcherChatRow(threadId);
+    await row.waitFor({ timeout: timeoutMs });
+    await expect(row).not.toHaveAttribute("data-unread", "true", { timeout: timeoutMs });
+    await expect(row.getByTestId("chat-switcher-chat-unread")).toHaveCount(0, { timeout: timeoutMs });
+  }
+
   async openChatById(threadId: string): Promise<void> {
     await this.openSwitcher();
-    const row = this.page.locator(`[data-testid="chat-switcher-chat"][data-chat-id="${this.cssString(threadId)}"]`).first();
+    const row = this.switcherChatRow(threadId);
     await row.waitFor({ timeout: 10_000 });
     await row.scrollIntoViewIfNeeded({ timeout: 5_000 });
     await row.click({ timeout: 5_000 }).catch(async (error: unknown) => {
@@ -628,6 +831,87 @@ export class ClickAppPage {
       });
     }
     return body;
+  }
+
+  private async currentTranscriptStateSignature(): Promise<TranscriptStateSignature> {
+    const transcript = this.page.getByTestId("chat-transcript");
+    await expect(transcript).toBeVisible({ timeout: 30_000 });
+    await expect(transcript.locator('[data-local-markdown-link-state="registering"]')).toHaveCount(0, { timeout: 30_000 });
+    return transcript.evaluate((root): TranscriptStateSignature => {
+      const normalize = (value: string | null | undefined) => (value ?? "").replace(/\s+/g, " ").trim();
+      const visibleText = (element: Element) => normalize(
+        "innerText" in element && typeof (element as HTMLElement).innerText === "string"
+          ? (element as HTMLElement).innerText
+          : element.textContent
+      );
+      const testId = (element: Element) => element.getAttribute("data-testid");
+      const statLabels = (element: Element) => [...element.querySelectorAll("[aria-label^='Changed lines:']")]
+        .map((stat) => stat.getAttribute("aria-label") ?? "")
+        .sort();
+
+      const rows = [...root.children].map((row, index): TranscriptRowSignature => {
+        const controls = [...row.querySelectorAll("button")].map((button) => ({
+          disabled: button instanceof HTMLButtonElement ? button.disabled : false,
+          expanded: button.getAttribute("aria-expanded"),
+          label: button.getAttribute("aria-label"),
+          testId: testId(button),
+          text: visibleText(button)
+        }));
+        const workEntries = [
+          ...row.querySelectorAll("[data-testid='work-entry-activity-summary'], [data-testid='work-entry']")
+        ].map((entry) => ({
+          callCount: entry.getAttribute("data-work-entry-call-count"),
+          command: entry.getAttribute("data-command"),
+          expanded: entry.querySelector("button")?.getAttribute("aria-expanded") ?? null,
+          hasDetails: entry.getAttribute("data-work-entry-has-details"),
+          state: entry.getAttribute("data-work-entry-state"),
+          testId: testId(entry),
+          title: entry.getAttribute("data-work-entry-title"),
+          type: entry.getAttribute("data-work-entry-type")
+        }));
+        const fileCards = [...row.querySelectorAll("[data-testid='file-change-card']")].map((card) => ({
+          label: card.getAttribute("aria-label"),
+          files: [...card.querySelectorAll("details")].map((file) => ({
+            open: file.hasAttribute("open"),
+            stats: statLabels(file),
+            text: visibleText(file.querySelector("summary") ?? file)
+          })),
+          stats: statLabels(card),
+          text: visibleText(card)
+        }));
+        const links = [...row.querySelectorAll("a")].map((link) => ({
+          href: link.getAttribute("href"),
+          text: visibleText(link)
+        }));
+        const images = [...row.querySelectorAll("img")].map((image) => ({
+          alt: image.getAttribute("alt"),
+          testId: testId(image)
+        }));
+
+        return {
+          ariaLabel: row.getAttribute("aria-label"),
+          controls,
+          fileCards,
+          images,
+          index,
+          links,
+          role: row.getAttribute("data-row-role"),
+          rowFinal: row.getAttribute("data-row-final"),
+          rowState: row.getAttribute("data-row-state"),
+          rowType: row.getAttribute("data-row-type"),
+          testId: testId(row),
+          text: visibleText(row),
+          workEntries,
+          workEntryCount: row.getAttribute("data-work-entry-count")
+        };
+      });
+
+      return {
+        rows,
+        rowCount: rows.length,
+        text: visibleText(root)
+      };
+    });
   }
 
   private async openSwitcherForInspection(): Promise<void> {
@@ -976,6 +1260,10 @@ export class ClickAppPage {
         hasReadyTranscript: Boolean(transcript && !emptyTranscript && !error)
       };
     });
+  }
+
+  private switcherChatRow(threadId: string): Locator {
+    return this.page.locator(`[data-testid="chat-switcher-chat"][data-chat-id="${this.cssString(threadId)}"]`).first();
   }
 
   private async selectedThreadId(): Promise<string | undefined> {

@@ -34,14 +34,11 @@
   ],
   "scripts": {
     "build": "tsdown",
-    "dump:e2e": "tsx scripts/dump-e2e-scenario.ts",
     "generate:protocol-types": "/Applications/Codex.app/Contents/Resources/codex app-server generate-ts --experimental --out src/protocol/generated/app-server",
-    "lint": "oxlint src scripts tsdown.config.ts",
-    "lint:fix": "oxlint --fix src scripts tsdown.config.ts",
+    "lint": "oxlint src tsdown.config.ts",
+    "lint:fix": "oxlint --fix src tsdown.config.ts",
     "typecheck": "tsgo --noEmit",
-    "typecheck:tsc": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests",
-    "test:e2e:capture": "pnpm run dump:e2e"
+    "typecheck:tsc": "tsc --noEmit"
   },
   "dependencies": {
     "immer": "^11.1.8",
@@ -50,8 +47,6 @@
   },
   "devDependencies": {
     "@types/node": "^25.0.1",
-    "tsx": "^4.22.0",
-    "typescript": "^6.0.2",
-    "vitest": "^3.2.4"
+    "typescript": "^6.0.2"
   }
 }

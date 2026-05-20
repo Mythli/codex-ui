@@ -163,6 +163,9 @@ export function updateTurnStatus(
     turn.status = status;
     turn.completedAtMs = completedAtMs ?? turn.completedAtMs;
     turn.durationMs = completedAtMs && startedAtMs ? Math.max(0, completedAtMs - startedAtMs) : turn.durationMs;
+    if (status === "completed" && turn.filesChanged && isActiveStatus(turn.filesChanged.status)) {
+      turn.filesChanged.status = "completed";
+    }
   });
 }
 
@@ -298,10 +301,51 @@ function mergeTurn(existing: CodexTranscriptTurnState, incoming: CodexTranscript
     startedAtMs: earliestMs(existing.startedAtMs, incoming.startedAtMs),
     completedAtMs: incoming.completedAtMs ?? existing.completedAtMs,
     durationMs: incoming.durationMs ?? existing.durationMs,
-    filesChanged: incoming.filesChanged ?? existing.filesChanged,
+    filesChanged: mergeFilesChanged(existing.filesChanged, incoming.filesChanged, incoming.status),
     itemOrder,
     itemsById
   };
+}
+
+function mergeFilesChanged(
+  existing: CodexTranscriptTurnState["filesChanged"],
+  incoming: CodexTranscriptTurnState["filesChanged"],
+  incomingStatus: CodexTranscriptTurnState["status"]
+): CodexTranscriptTurnState["filesChanged"] {
+  const filesChanged = richerFilesChanged(existing, incoming);
+  if (!filesChanged) {
+    return undefined;
+  }
+  if (incomingStatus === "completed" && isActiveStatus(filesChanged.status)) {
+    return {
+      ...filesChanged,
+      status: "completed"
+    };
+  }
+  return filesChanged;
+}
+
+function richerFilesChanged(
+  existing: CodexTranscriptTurnState["filesChanged"],
+  incoming: CodexTranscriptTurnState["filesChanged"]
+): CodexTranscriptTurnState["filesChanged"] {
+  if (!existing) return incoming;
+  if (!incoming) return existing;
+  return fileChangeEntryRichness(incoming) >= fileChangeEntryRichness(existing) ? incoming : existing;
+}
+
+function fileChangeEntryRichness(entry: NonNullable<CodexTranscriptTurnState["filesChanged"]>): number {
+  return entry.files.reduce((sum, file) => (
+    sum +
+    (file.additions ?? 0) +
+    (file.deletions ?? 0) +
+    (file.diff?.length ?? 0) +
+    (file.content?.length ?? 0)
+  ), 0);
+}
+
+function isActiveStatus(status: string | undefined): boolean {
+  return status === "inProgress" || status === "running";
 }
 
 function equivalentExistingItemId(
@@ -377,11 +421,22 @@ function mergeItem(existing: CodexTranscriptItem, incoming: CodexTranscriptItem,
 function shouldPreferIncomingItem(existing: CodexTranscriptItem, incoming: CodexTranscriptItem): boolean {
   if (incoming.source === "threadRead" || incoming.source === "rollout") return true;
   if (existing.source === "threadRead" || existing.source === "rollout") return false;
+  if (existing.type === "fileChange" && incoming.type === "fileChange" && fileChangeRichness(incoming) > fileChangeRichness(existing)) return true;
   if (incoming.completedAtMs && !existing.completedAtMs) return true;
   if (isCompletedStatus(incoming.status) && !isCompletedStatus(existing.status)) return true;
   if (incoming.text && incoming.text.length >= (existing.text?.length ?? 0)) return true;
   if (incoming.output && incoming.output.length >= (existing.output?.length ?? 0)) return true;
   return !hasRenderableContent(existing) && hasRenderableContent(incoming);
+}
+
+function fileChangeRichness(item: CodexTranscriptItem): number {
+  return (item.files ?? []).reduce((sum, file) => (
+    sum +
+    (file.additions ?? 0) +
+    (file.deletions ?? 0) +
+    (file.diff?.length ?? 0) +
+    (file.content?.length ?? 0)
+  ), 0);
 }
 
 function mergeTurnStatus(

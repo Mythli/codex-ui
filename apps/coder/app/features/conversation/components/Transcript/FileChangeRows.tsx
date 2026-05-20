@@ -25,7 +25,7 @@ export function FileChangeTimelineRow({ cwd, entry }: { cwd?: string; entry: Cod
     return <FileChangeProgressRow cwd={cwd} entry={entry} />;
   }
   return (
-    <ActivityChildRow defaultExpanded={entry.defaultExpanded} icon="file" status={entry.status} title={entry.title}>
+    <ActivityChildRow defaultExpanded={entry.defaultExpanded} icon="file" id={entry.id} status={entry.status} title={entry.title}>
       <FileChangeDetails cwd={cwd} entry={entry} />
     </ActivityChildRow>
   );

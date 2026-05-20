@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import type { CodexWorkSegment } from "@taylordb/codex";
 import { FiChevronRight } from "react-icons/fi";
 import { TextShimmer, type MarkdownComponents } from "@app/common/pure";
-import { CurrentActivityRow } from "./ActivityRows";
 import { WorkEntryList } from "./WorkEntryList";
 import { formatDuration } from "./transcriptFormatters";
 import { useElapsedMs } from "./transcriptState";
@@ -30,13 +29,14 @@ export function WorkSection({
 
   useEffect(() => {
     setExpanded(block.headline.defaultExpanded);
-  }, [block.id, block.headline.defaultExpanded]);
+  }, [block.headline.defaultExpanded, block.id, block.status]);
 
   return (
     <article
       aria-label={`${state === "working" ? "Running" : state === "error" ? "Failed" : "Completed"} work block`}
       className={[styles.message, styles.message_activity].join(" ")}
       data-block-id={block.id}
+      data-work-entry-count={block.entries.length}
       data-row-state={state}
       data-row-type="work"
       data-testid="transcript-work-block"
@@ -48,9 +48,8 @@ export function WorkSection({
         onToggle={() => setExpanded((current) => !current)}
         timeLabel={state === "working" ? formatDuration(elapsedMs) : block.headline.durationLabel ?? formatDuration(elapsedMs)}
       />
-      {block.currentActivity ? <CurrentActivityRow activity={block.currentActivity} /> : null}
       {expanded ? (
-        <WorkEntryList cwd={cwd} entries={block.entries} hiddenActivityId={block.currentActivity?.id} markdownComponents={markdownComponents} />
+        <WorkEntryList cwd={cwd} entries={block.entries} markdownComponents={markdownComponents} />
       ) : null}
     </article>
   );

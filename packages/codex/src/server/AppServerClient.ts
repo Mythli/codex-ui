@@ -28,6 +28,8 @@ type PendingRequest = {
 const requestTimeoutMs = 10_000;
 
 export type AppServerClientOptions = {
+  appServerArgs?: string[];
+  codexBinArgs?: string[];
   cwd?: string;
   env?: NodeJS.ProcessEnv;
   trace?: (entry: AppServerTraceEntry) => void;
@@ -67,7 +69,13 @@ export class AppServerClient implements CodexTransport {
 
   constructor(codexBin = resolveCodexBinary(), options: AppServerClientOptions = {}) {
     this.trace = options.trace;
-    this.child = spawn(codexBin, ["app-server", "--listen", "stdio://"], {
+    this.child = spawn(codexBin, [
+      ...(options.codexBinArgs ?? []),
+      "app-server",
+      ...(options.appServerArgs ?? []),
+      "--listen",
+      "stdio://"
+    ], {
       cwd: options.cwd ?? process.cwd(),
       env: options.env ?? process.env,
       stdio: ["pipe", "pipe", "pipe"]

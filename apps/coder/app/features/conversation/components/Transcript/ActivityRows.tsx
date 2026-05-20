@@ -22,7 +22,9 @@ export function CurrentActivityRow({ activity }: { activity: CodexCurrentActivit
   return (
     <div
       className={styles.currentActivityRow}
+      aria-label={activity.title}
       data-current-activity-type={activity.type}
+      data-current-activity-title={activity.title}
       data-testid="work-current-activity"
     >
       <WorkIcon kind={activity.icon} />
@@ -49,12 +51,20 @@ export function ActivitySummaryRow({
 
   useEffect(() => {
     setExpanded(entry.defaultExpanded);
-  }, [entry.id, entry.defaultExpanded]);
+  }, [entry.id]);
+
+  useEffect(() => {
+    if (entry.defaultExpanded) {
+      setExpanded(true);
+    }
+  }, [entry.defaultExpanded]);
 
   return (
     <div
       className={[styles.activityGroup, isActive ? styles.workActivityActive : ""].filter(Boolean).join(" ")}
+      data-work-entry-call-count={entry.items.length}
       data-work-entry-state={entry.status}
+      data-work-entry-title={entry.label}
       data-work-entry-type="activitySummary"
       data-testid="work-entry-activity-summary"
     >
@@ -83,18 +93,26 @@ export function CommandTimelineRow({
 }: {
   children: ReactNode;
   canExpand: boolean;
-  entry: { defaultExpanded?: boolean; status?: string; title: string };
+  entry: { command?: string; defaultExpanded?: boolean; id: string; status?: string; title: string };
 }) {
   const [expanded, setExpanded] = useState(entry.defaultExpanded);
   const isActive = isActiveStatus(entry.status);
 
   useEffect(() => {
     setExpanded(entry.defaultExpanded);
-  }, [entry.defaultExpanded, entry.title]);
+  }, [entry.id]);
+
+  useEffect(() => {
+    if (entry.defaultExpanded) {
+      setExpanded(true);
+    }
+  }, [entry.defaultExpanded]);
 
   return (
     <div
       className={[styles.timelineCommandRow, isActive ? styles.workActivityActive : ""].filter(Boolean).join(" ")}
+      data-command={entry.command ?? ""}
+      data-work-entry-has-details={canExpand ? "true" : "false"}
       data-work-entry-state={entry.status}
       data-work-entry-title={entry.title}
       data-work-entry-type="command"
@@ -123,12 +141,14 @@ export function ActivityChildRow({
   children,
   defaultExpanded = false,
   icon,
+  id,
   status,
   title
 }: {
   children: ReactNode;
   defaultExpanded?: boolean;
   icon: WorkIconKind;
+  id: string;
   status?: string;
   title: string;
 }) {
@@ -137,7 +157,13 @@ export function ActivityChildRow({
 
   useEffect(() => {
     setExpanded(defaultExpanded);
-  }, [defaultExpanded, title]);
+  }, [id]);
+
+  useEffect(() => {
+    if (defaultExpanded) {
+      setExpanded(true);
+    }
+  }, [defaultExpanded]);
 
   return (
     <div

@@ -1,10 +1,9 @@
 import {
-  CODEX_THREAD_START_EXTENDED_EVENTS_FIELD,
   type CodexAppServerUserInput,
   type CodexRequestParams
 } from "@taylordb/codex/protocol";
 import { parseCodexProtocolRequestTraffic } from "@taylordb/codex/protocol";
-import { parseCodexUIMessageInput } from "@taylordb/codex";
+import { parseCodexMessageInput } from "@taylordb/codex";
 import { requestCodex } from "../../connection/api/codexClient";
 import { DEFAULT_CODEX_CWD } from "../../connection/api/codexTransport";
 import {
@@ -73,7 +72,6 @@ export function submitPrompt(): AppThunk<Promise<CoderSubmitPromptResult>> {
         approvalPolicy,
         sandbox,
         ephemeral: false,
-        [CODEX_THREAD_START_EXTENDED_EVENTS_FIELD]: false,
         persistExtendedHistory: true
       }, { prefix: "thread-start" });
       const threadId = startResponse.thread.id;
@@ -160,7 +158,7 @@ function turnStartParams(input: {
 }): CodexRequestParams<"turn/start"> {
   return {
     threadId: input.threadId,
-    input: parseCodexUIMessageInput(input.input),
+    input: parseCodexMessageInput(input.input),
     cwd: input.cwd,
     approvalPolicy: input.approvalPolicy,
     sandboxPolicy: toSandboxPolicy(input.sandbox, input.cwd),

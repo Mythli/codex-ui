@@ -1,5 +1,9 @@
+import { Agent } from "node:http";
+import { createConnection } from "node:net";
+import { CodexSocketIoTransport } from "@taylordb/codex/browser";
 import {
   AppServerClient,
+  type AppServerClientOptions,
   type CodexProtocolResponse,
   type CodexProtocolTraffic,
   type CodexRequestMethod,
@@ -7,70 +11,64 @@ import {
   type CodexTransport,
   type CodexTransportRequestOptions
 } from "@taylordb/codex/server";
+import { io } from "socket.io-client";
 import {
-  createAssetReplacementMiddleware,
   createLocalFileReadMiddleware,
-  createTrafficMeasurementMiddleware
+  createMarkdownRewriteMiddleware,
+  createTrafficMeasurementMiddleware,
+  type MarkdownRewriteHandler
 } from "./middlewares/index.js";
 import { createCodexMiddlewareTransport } from "./createCodexMiddlewareTransport.js";
 import {
-  createCodexAssetRegistry,
   type CodexAssetRegistry
 } from "./middlewares/assets/index.js";
 
-const healthCheckIntervalMs = 10_000;
+export type CoderApiLogger = {
+  info: (event: string, payload: unknown) => void;
+};
 
-export const sharedCodexAssets = createCodexAssetRegistry();
+export type CodexBackendTransport = CodexTransport & {
+  exitCode?: number | null;
+  signal?: NodeJS.Signals | null;
+  waitForClose?: () => Promise<void>;
+};
 
-let sharedBackend: CodexBackendSupervisor | undefined;
+export type CreateCodexBackendTransportInput = {
+  codexBin?: string;
+  onDiagnostic?: (text: string) => void;
+};
 
-export function getSharedCodexBackend(
-  assets: CodexAssetRegistry = sharedCodexAssets
-): CodexBackendSupervisor {
-  sharedBackend ??= new CodexBackendSupervisor({ assets });
-  sharedBackend.start();
-  return sharedBackend;
-}
+export type CreateCodexBackendTransport = (
+  input?: CreateCodexBackendTransportInput
+) => CodexBackendTransport | Promise<CodexBackendTransport>;
 
-type SupervisedBackend = {
-  client: AppServerClient & {
-    requestInternal?: AppServerClient["request"];
-  };
-  transport: CodexTransport;
+export type LiveCodexBackendProviderOptions = {
+  createTransport: CreateCodexBackendTransport;
+  logger?: CoderApiLogger;
+};
+
+type LiveBackendRecord = {
+  transport: CodexBackendTransport;
   unsubscribeDiagnostic: () => void;
   unsubscribeTraffic: () => void;
 };
 
-export class CodexBackendSupervisor implements CodexTransport {
-  private backend?: SupervisedBackend;
-  private healthTimer?: ReturnType<typeof setInterval>;
-  private readyPromise?: Promise<CodexTransport>;
-  private restarting = false;
-  private shuttingDown = false;
+export class LiveCodexBackendProvider implements CodexTransport {
+  private backend?: LiveBackendRecord;
+  private readyPromise?: Promise<CodexBackendTransport>;
   private readonly diagnosticListeners = new Set<(text: string) => void>();
   private readonly trafficListeners = new Set<(traffic: CodexProtocolTraffic) => void>();
 
-  constructor(private readonly options: { assets: CodexAssetRegistry }) {}
+  constructor(private readonly options: LiveCodexBackendProviderOptions) {}
 
-  start(): void {
-    void this.ensureReady("startup");
-    if (!this.healthTimer) {
-      this.healthTimer = setInterval(() => {
-        void this.checkHealth();
-      }, healthCheckIntervalMs);
-      unrefTimer(this.healthTimer);
+  async ensureReady(reason = "request"): Promise<CodexBackendTransport> {
+    if (this.backend) {
+      return this.backend.transport;
     }
-  }
-
-  async ensureReady(reason = "request"): Promise<CodexTransport> {
-    if (this.backend && !this.restarting) {
-      return this;
-    }
-    this.readyPromise ??= this.startBackend(reason).finally(() => {
+    this.readyPromise ??= this.createBackend(reason).finally(() => {
       this.readyPromise = undefined;
     });
-    await this.readyPromise;
-    return this;
+    return this.readyPromise;
   }
 
   async request<M extends CodexRequestMethod>(
@@ -78,19 +76,13 @@ export class CodexBackendSupervisor implements CodexTransport {
     params: CodexRequestParams<M>,
     options: CodexTransportRequestOptions = {}
   ): Promise<CodexProtocolResponse<M>> {
-    await this.ensureReady("request");
-    if (!this.backend) {
-      throw new Error("Codex backend is not ready.");
-    }
-    return this.backend.transport.request(method, params, options);
+    const transport = await this.ensureReady("request");
+    return transport.request(method, params, options);
   }
 
   async notify<M extends CodexRequestMethod>(method: M, params?: CodexRequestParams<M>): Promise<void> {
-    await this.ensureReady("notify");
-    if (!this.backend) {
-      throw new Error("Codex backend is not ready.");
-    }
-    await this.backend.transport.notify(method, params);
+    const transport = await this.ensureReady("notify");
+    await transport.notify(method, params);
   }
 
   onTraffic(listener: (traffic: CodexProtocolTraffic) => void): () => void {
@@ -108,98 +100,46 @@ export class CodexBackendSupervisor implements CodexTransport {
   }
 
   close(): void {
-    // Socket/session close must not stop the supervised process for the whole app.
+    this.disposeBackend("close");
   }
 
-  shutdown(): void {
-    this.shuttingDown = true;
-    if (this.healthTimer) {
-      clearInterval(this.healthTimer);
-      this.healthTimer = undefined;
-    }
-    this.disposeBackend("shutdown");
-  }
-
-  private async startBackend(reason: string): Promise<CodexTransport> {
-    this.restarting = true;
-    this.disposeBackend(reason);
+  private async createBackend(reason: string): Promise<CodexBackendTransport> {
     const startedAt = Date.now();
-    logBackendEvent("codex:restart:start", { reason });
-
-    const client = new AppServerClient() as SupervisedBackend["client"];
-    const transport = createAppCodexMiddlewareTransport(client, {
-      assets: this.options.assets,
-      hydrateRequestResponses: false,
+    this.log("codex:start", { reason });
+    const transport = await this.options.createTransport({
       onDiagnostic: (text) => this.emitDiagnostic(text)
     });
-    const backend: SupervisedBackend = {
-      client,
+    const record: LiveBackendRecord = {
       transport,
       unsubscribeDiagnostic: transport.onDiagnostic((text) => this.emitDiagnostic(text)),
       unsubscribeTraffic: transport.onTraffic((traffic) => this.emitTraffic(traffic))
     };
-
-    void client.waitForClose().then(() => {
-      logBackendEvent("codex:closed", {
-        exitCode: client.exitCode,
-        signal: client.signal
-      });
-      if (this.backend === backend) {
-        this.disposeBackend("closed");
-        if (!this.shuttingDown) {
-          void this.ensureReady("closed");
-        }
-      }
+    this.backend = record;
+    this.observeClose(record);
+    this.log("codex:ready", {
+      durationMs: Date.now() - startedAt,
+      reason
     });
-
-    try {
-      await client.initialize();
-      this.backend = backend;
-      this.restarting = false;
-      logBackendEvent("codex:restart:ready", {
-        durationMs: Date.now() - startedAt,
-        reason
-      });
-      return this;
-    } catch (error) {
-      this.restarting = false;
-      backend.unsubscribeDiagnostic();
-      backend.unsubscribeTraffic();
-      backend.transport.close();
-      logBackendEvent("codex:restart:error", {
-        durationMs: Date.now() - startedAt,
-        error: serializeError(error),
-        reason
-      });
-      throw error;
-    }
+    return transport;
   }
 
-  private async checkHealth(): Promise<void> {
-    if (!this.backend || this.restarting || this.shuttingDown) {
+  private observeClose(record: LiveBackendRecord): void {
+    if (!record.transport.waitForClose) {
       return;
     }
-    const startedAt = Date.now();
-    try {
-      const requestInternal = this.backend.client.requestInternal?.bind(this.backend.client)
-        ?? this.backend.client.request.bind(this.backend.client);
-      await requestInternal("model/list", { limit: 1, includeHidden: false });
-      logBackendEvent("codex:health:ok", {
-        durationMs: Date.now() - startedAt
-      });
-    } catch (error) {
-      logBackendEvent("codex:health:failed", {
-        durationMs: Date.now() - startedAt,
-        error: serializeError(error)
-      });
-      if (!this.shuttingDown) {
-        this.disposeBackend("health-failed");
-        void this.ensureReady("health-failed");
+    void record.transport.waitForClose().then(() => {
+      if (this.backend !== record) {
+        return;
       }
-    }
+      this.log("codex:closed", {
+        exitCode: record.transport.exitCode ?? null,
+        signal: record.transport.signal ?? null
+      });
+      this.disposeBackend("closed", { closeTransport: false });
+    });
   }
 
-  private disposeBackend(reason: string): void {
+  private disposeBackend(reason: string, options: { closeTransport?: boolean } = {}): void {
     const backend = this.backend;
     this.backend = undefined;
     if (!backend) {
@@ -207,8 +147,10 @@ export class CodexBackendSupervisor implements CodexTransport {
     }
     backend.unsubscribeDiagnostic();
     backend.unsubscribeTraffic();
-    backend.transport.close();
-    logBackendEvent("codex:disposed", { reason });
+    if (options.closeTransport !== false) {
+      backend.transport.close();
+    }
+    this.log("codex:disposed", { reason });
   }
 
   private emitTraffic(traffic: CodexProtocolTraffic): void {
@@ -222,28 +164,36 @@ export class CodexBackendSupervisor implements CodexTransport {
       listener(text);
     }
   }
+
+  private log(event: string, payload: unknown): void {
+    this.options.logger?.info(event, payload);
+  }
 }
 
+export type AppCodexMiddlewareTransportOptions = {
+  assets: CodexAssetRegistry;
+  hydrateRequestResponses?: boolean;
+  markdownRewriteHandlers: readonly MarkdownRewriteHandler[];
+  onDiagnostic?: (text: string) => void;
+};
+
 export function createAppCodexMiddlewareTransport(
-  client: AppServerClient,
-  options: {
-    assets: CodexAssetRegistry;
-    hydrateRequestResponses?: boolean;
-    onDiagnostic?: (text: string) => void;
-  }
+  transport: CodexTransport,
+  options: AppCodexMiddlewareTransportOptions
 ): CodexTransport {
   return createCodexMiddlewareTransport(
-    client,
+    transport,
     {
       hydrateRequestResponses: options.hydrateRequestResponses,
       onDiagnostic: options.onDiagnostic
     },
     createLocalFileReadMiddleware({
-      transport: client,
+      transport,
       onDiagnostic: options.onDiagnostic
     }),
-    createAssetReplacementMiddleware({
+    createMarkdownRewriteMiddleware({
       assets: options.assets,
+      handlers: options.markdownRewriteHandlers,
       onDiagnostic: options.onDiagnostic
     }),
     createTrafficMeasurementMiddleware({
@@ -252,26 +202,96 @@ export function createAppCodexMiddlewareTransport(
   );
 }
 
-function serializeError(error: unknown) {
-  if (error instanceof Error) {
-    return { name: error.name, message: error.message, stack: error.stack };
+export type ManagedCodexBackendTransportOptions = {
+  appServerArgs: string[];
+  assets: CodexAssetRegistry;
+  codexBin?: string;
+  codexBinArgs: string[];
+  cwd?: string;
+  env?: NodeJS.ProcessEnv;
+  hydrateRequestResponses?: boolean;
+  markdownRewriteHandlers: readonly MarkdownRewriteHandler[];
+};
+
+export async function createManagedCodexBackendTransport(
+  options: ManagedCodexBackendTransportOptions,
+  input: CreateCodexBackendTransportInput = {}
+): Promise<CodexBackendTransport> {
+  const client = new AppServerClient(input.codexBin ?? options.codexBin, {
+    appServerArgs: options.appServerArgs,
+    codexBinArgs: options.codexBinArgs,
+    cwd: options.cwd,
+    env: options.env
+  } satisfies AppServerClientOptions);
+  const transport = createAppCodexMiddlewareTransport(client, {
+    assets: options.assets,
+    hydrateRequestResponses: options.hydrateRequestResponses,
+    markdownRewriteHandlers: options.markdownRewriteHandlers,
+    onDiagnostic: input.onDiagnostic
+  });
+  await initializeTransport(transport);
+  return withManagedLifecycle(transport, client);
+}
+
+export type SocketCodexBackendTransportOptions = {
+  assets: CodexAssetRegistry;
+  hydrateRequestResponses?: boolean;
+  markdownRewriteHandlers: readonly MarkdownRewriteHandler[];
+  socketPath: string;
+  unixSocketPath?: string;
+  url: string;
+};
+
+export async function createSocketCodexBackendTransport(
+  options: SocketCodexBackendTransportOptions,
+  input: CreateCodexBackendTransportInput = {}
+): Promise<CodexBackendTransport> {
+  const socketOptions: Record<string, unknown> = {
+    autoConnect: false,
+    forceNew: true,
+    path: options.socketPath,
+    reconnection: false
+  };
+
+  if (options.unixSocketPath) {
+    socketOptions.agent = unixSocketAgent(options.unixSocketPath);
+    socketOptions.transports = ["polling"];
   }
-  return error;
+
+  const socketTransport = new CodexSocketIoTransport(io(options.url, socketOptions));
+  const transport = createAppCodexMiddlewareTransport(socketTransport, {
+    assets: options.assets,
+    hydrateRequestResponses: options.hydrateRequestResponses,
+    markdownRewriteHandlers: options.markdownRewriteHandlers,
+    onDiagnostic: input.onDiagnostic
+  });
+  return transport;
 }
 
-function logBackendEvent(event: string, payload: unknown): void {
-  console.info(`[codex backend] ${event}`, safeStringify(payload));
+function withManagedLifecycle(
+  transport: CodexTransport,
+  client: AppServerClient
+): CodexBackendTransport {
+  return Object.defineProperties(transport, {
+    exitCode: {
+      get: () => client.exitCode
+    },
+    signal: {
+      get: () => client.signal
+    },
+    waitForClose: {
+      value: () => client.waitForClose()
+    }
+  }) as CodexBackendTransport;
 }
 
-function safeStringify(value: unknown): string {
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return String(value);
-  }
+async function initializeTransport(transport: CodexTransport): Promise<void> {
+  const initializable = transport as CodexTransport & { initialize?: () => Promise<void> };
+  await initializable.initialize?.();
 }
 
-function unrefTimer(timer: ReturnType<typeof setInterval>): void {
-  const unref = (timer as ReturnType<typeof setInterval> & { unref?: () => void }).unref;
-  unref?.call(timer);
+function unixSocketAgent(socketPath: string): Agent {
+  const agent = new Agent({ keepAlive: true });
+  agent.createConnection = () => createConnection(socketPath);
+  return agent;
 }

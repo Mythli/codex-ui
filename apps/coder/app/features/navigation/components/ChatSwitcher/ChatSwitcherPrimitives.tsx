@@ -104,7 +104,7 @@ export function ChatRow({
       >
         <span className={styles.chatTitle}>{chat.title}</span>
         {chat.activity === "running" ? (
-          <span className={styles.activityDot} aria-label="Chat is running" data-testid="chat-switcher-chat-running" />
+          <output className={styles.activitySpinner} aria-label="Chat is running" data-testid="chat-switcher-chat-running" />
         ) : unread ? (
           <span className={styles.unreadDot} aria-label="Unread messages" data-testid="chat-switcher-chat-unread" />
         ) : updatedLabel ? (

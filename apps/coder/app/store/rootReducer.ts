@@ -4,7 +4,6 @@ import { codexConnectionReducer } from "../features/connection/state/codexConnec
 import { chatListMetaReducer } from "../features/conversation/state/chatListMetaSlice";
 import { threadIndexReducer } from "../features/conversation/state/threadIndexSlice";
 import { threadsReducer } from "../features/conversation/state/threadsSlice";
-import { fixtureReducer } from "../features/fixturePlayback/fixtureSlice";
 import { selectionReducer } from "../features/navigation/state/selectionSlice";
 import { modelsConfigReducer } from "../features/workspace/state/modelsConfigSlice";
 
@@ -15,6 +14,5 @@ export const rootReducer = combineReducers({
   selection: selectionReducer,
   composer: composerReducer,
   chatListMeta: chatListMetaReducer,
-  modelsConfig: modelsConfigReducer,
-  fixture: fixtureReducer
+  modelsConfig: modelsConfigReducer
 });

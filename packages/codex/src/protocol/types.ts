@@ -4,7 +4,6 @@ import type {
   InitializeResponse,
   ReasoningEffort,
   RequestId,
-  ResponseItem,
   ServerNotification,
   ServerRequest
 } from "./generated/app-server/index.js";
@@ -56,7 +55,6 @@ export type CodexAppServerNotificationParams<M extends CodexAppServerNotificatio
 >["params"];
 
 export type CodexAppServerServerRequest = ServerRequest;
-export type CodexAppServerResponseItem = ResponseItem;
 export type CodexAppServerInitializeParams = InitializeParams;
 export type CodexAppServerInitializeResponse = InitializeResponse;
 

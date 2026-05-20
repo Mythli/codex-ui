@@ -344,16 +344,17 @@
   padding-top: 1px;
 }
 
-.activityDot {
-  background: var(--coder-activity-running);
+.activitySpinner {
+  animation: chat-running-spin 900ms linear infinite;
+  border: 2px solid color-mix(in srgb, var(--coder-activity-running) 22%, transparent);
   border-radius: 999px;
-  display: block;
+  border-top-color: var(--coder-activity-running);
   grid-column: 2;
   grid-row: 1;
-  height: 8px;
+  height: 12px;
   align-self: center;
   justify-self: end;
-  width: 8px;
+  width: 12px;
 }
 
 .unreadDot {
@@ -367,6 +368,12 @@
   align-self: center;
   justify-self: end;
   width: 8px;
+}
+
+@keyframes chat-running-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .diffStats {

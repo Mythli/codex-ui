@@ -1,13 +1,16 @@
 export {
-  createAssetReplacementMiddleware,
-  normalizeThread,
-  replaceEventAssets,
-  replaceRequestAssets,
-  replaceResponseAssets,
-  replaceTrafficAssets,
-  type AssetReplacementContext,
-  type AssetReplacementMiddlewareOptions
-} from "./asset-replacement-middleware.js";
+  createMarkdownRewriteMiddleware,
+  defaultMarkdownRewriteHandlers,
+  rewriteEventMarkdown,
+  rewriteMarkdownAssetUrls,
+  rewriteMarkdownImageUrls,
+  rewriteMarkdownLocalFileLinks,
+  rewriteResponseMarkdown,
+  rewriteRolloutJsonlMarkdown,
+  type MarkdownRewriteContext,
+  type MarkdownRewriteHandler,
+  type MarkdownRewriteMiddlewareOptions
+} from "./markdown-rewrite/index.js";
 export {
   createLocalFileReadMiddleware,
   fileReadPath,

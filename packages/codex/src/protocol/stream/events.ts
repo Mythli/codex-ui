@@ -10,7 +10,6 @@ import {
   stringValue,
   type RecordValue
 } from "./common.js";
-import { responseItemToThreadItem } from "./response-items.js";
 import { parseCodexThreadItem, type CodexParsedThreadItem, type CodexParsedTurn } from "./thread-items.js";
 
 type GeneratedEventParams<M extends CodexAppServerNotificationMethod> =
@@ -27,11 +26,6 @@ type ItemLifecycleParams<M extends "item/started" | "item/completed"> =
     item: CodexParsedThreadItem;
   };
 
-type RawResponseItemCompletedParams =
-  Omit<GeneratedEventParams<"rawResponseItem/completed">, "item"> & {
-    item?: CodexParsedThreadItem;
-  };
-
 type ThreadUnarchivedParams = GeneratedEventParams<"thread/unarchived"> & {
   thread?: GeneratedEventParams<"thread/started">["thread"];
 };
@@ -42,11 +36,9 @@ export type CodexProtocolEventByMethod = {
       ? TurnNotificationParams<M>
       : M extends "item/started" | "item/completed"
         ? ItemLifecycleParams<M>
-        : M extends "rawResponseItem/completed"
-          ? RawResponseItemCompletedParams
-          : M extends "thread/unarchived"
-            ? ThreadUnarchivedParams
-            : GeneratedEventParams<M>;
+        : M extends "thread/unarchived"
+          ? ThreadUnarchivedParams
+          : GeneratedEventParams<M>;
 };
 
 export type CodexUnknownEvent = {
@@ -92,7 +84,6 @@ const knownNotificationMethods = new Set<string>([
   "item/autoApprovalReview/started",
   "item/autoApprovalReview/completed",
   "item/completed",
-  "rawResponseItem/completed",
   "item/agentMessage/delta",
   "item/plan/delta",
   "command/exec/outputDelta",
@@ -188,10 +179,6 @@ function normalizeNotificationParams(method: string, value: unknown): RecordValu
     case "item/started":
     case "item/completed": {
       const item = parseCodexThreadItem(params.item);
-      return item ? { ...params, item } : params;
-    }
-    case "rawResponseItem/completed": {
-      const item = responseItemToThreadItem(params.item);
       return item ? { ...params, item } : params;
     }
     default:

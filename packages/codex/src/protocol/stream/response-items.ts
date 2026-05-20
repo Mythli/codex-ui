@@ -132,7 +132,7 @@ export function rolloutRecordsByTurn(entries: readonly CodexRolloutEntry[]): Map
   return recordsByTurn;
 }
 
-export function parseResponseItemThreadItems(payloads: readonly unknown[]): CodexParsedThreadItem[] {
+function parseResponseItemThreadItems(payloads: readonly unknown[]): CodexParsedThreadItem[] {
   const outputsByCallId = responseItemOutputsByCallId(payloads);
   const patchChangesByCallId = patchChangesByCallIdFromPayloads(payloads);
   const items: CodexParsedThreadItem[] = [];
@@ -158,7 +158,7 @@ export function parseResponseItemThreadItems(payloads: readonly unknown[]): Code
   return items;
 }
 
-export function responseItemToThreadItem(
+function responseItemToThreadItem(
   payload: unknown,
   outputsByCallId: ReadonlyMap<string, string> = new Map(),
   patchChangesByCallId: ReadonlyMap<string, CodexParsedThreadItem[]> = new Map()
@@ -195,19 +195,17 @@ export function responseItemToThreadItem(
   }
 
   if (type === "user_message") {
-    const message = stringValue(record.message);
-    if (!message) {
+    const message = stringValue(record.message) ?? "";
+    const localImages = localImageInputs(record);
+    if (!message && localImages.length === 0) {
       return undefined;
     }
-    const localImages = Array.isArray(record.local_images)
-      ? record.local_images.flatMap((path) => stringValue(path) ? [stringValue(path)!] : [])
-      : [];
     return parseCodexThreadItem({
       type: "userMessage",
       id: stableFallbackId({ ...record, type: "userMessage" }),
       content: [
         { type: "text", text: message, text_elements: Array.isArray(record.text_elements) ? record.text_elements : [] },
-        ...localImages.map((path) => ({ type: "localImage" as const, path }))
+        ...localImages
       ]
     });
   }
@@ -293,11 +291,12 @@ export function responseItemToThreadItem(
     if (patchItems?.[0]?.type === "fileChange") {
       return patchItems[0];
     }
+    const patchChanges = patchChangesFromApplyPatchInput(stringValue(record.input));
     return parseCodexThreadItem({
       type: "fileChange",
       id: callId,
       status: statusWithOutput(stringValue(record.status), output),
-      changes: []
+      changes: patchChanges
     });
   }
 
@@ -430,6 +429,35 @@ function textFromMessageContent(content: readonly unknown[]): string {
   return content.map((item) => stringValue(asRecord(item).text)).filter(Boolean).join("\n");
 }
 
+function localImageInputs(record: RecordValue): Array<{ type: "localImage"; path: string; asset?: unknown }> {
+  const paths = Array.isArray(record.local_images)
+    ? record.local_images.flatMap((path) => stringValue(path) ? [stringValue(path)!] : [])
+    : [];
+  const assetsByPath = localImageAssetsByPath(record.local_image_assets);
+  return paths.map((path) => {
+    const asset = assetsByPath.get(path);
+    return asset
+      ? { type: "localImage" as const, path, asset }
+      : { type: "localImage" as const, path };
+  });
+}
+
+function localImageAssetsByPath(value: unknown): Map<string, unknown> {
+  const result = new Map<string, unknown>();
+  if (!Array.isArray(value)) {
+    return result;
+  }
+  for (const entry of value) {
+    const record = asRecord(entry);
+    const path = stringValue(record.path);
+    if (!path || !("asset" in record)) {
+      continue;
+    }
+    result.set(path, record.asset);
+  }
+  return result;
+}
+
 function reasoningTextItems(value: unknown): string[] {
   if (!Array.isArray(value)) {
     return [];
@@ -503,6 +531,84 @@ function patchChangeDiff(change: PatchApplyChange): string {
   const prefix = change.type === "delete" ? "-" : "+";
   const lines = change.content.replace(/\n$/, "").split("\n").map((line) => `${prefix}${line}`);
   return `${lines.join("\n")}\n`;
+}
+
+function patchChangesFromApplyPatchInput(input: string | undefined): CodexFileUpdateChange[] {
+  if (!input) {
+    return [];
+  }
+
+  const changes: CodexFileUpdateChange[] = [];
+  let current: {
+    kind: CodexFileUpdateChange["kind"];
+    lines: string[];
+    path: string;
+  } | undefined;
+
+  const flush = () => {
+    if (!current) {
+      return;
+    }
+    changes.push({
+      path: current.path,
+      kind: current.kind,
+      diff: diffFromPatchLines(current.kind, current.lines)
+    });
+    current = undefined;
+  };
+
+  for (const line of input.split(/\r?\n/)) {
+    const add = /^\*\*\* Add File: (.+)$/.exec(line);
+    if (add) {
+      flush();
+      current = { path: add[1] ?? "", kind: { type: "add" }, lines: [] };
+      continue;
+    }
+
+    const update = /^\*\*\* Update File: (.+)$/.exec(line);
+    if (update) {
+      flush();
+      current = { path: update[1] ?? "", kind: { type: "update", move_path: null }, lines: [] };
+      continue;
+    }
+
+    const deleted = /^\*\*\* Delete File: (.+)$/.exec(line);
+    if (deleted) {
+      flush();
+      changes.push({ path: deleted[1] ?? "", kind: { type: "delete" }, diff: "" });
+      continue;
+    }
+
+    if (line.startsWith("***")) {
+      flush();
+      continue;
+    }
+
+    if (current && (line.startsWith("+") || line.startsWith("-") || line.startsWith("@@"))) {
+      current.lines.push(line);
+    }
+  }
+  flush();
+
+  return changes.filter((change) => change.path);
+}
+
+function diffFromPatchLines(kind: CodexFileUpdateChange["kind"], lines: readonly string[]): string {
+  const diffLines = lines.filter((line) => line.startsWith("+") || line.startsWith("-"));
+  if (diffLines.length === 0) {
+    return "";
+  }
+
+  if (kind.type === "add") {
+    return [`@@ -0,0 +1,${diffLines.length} @@`, ...diffLines].join("\n") + "\n";
+  }
+
+  if (kind.type === "delete") {
+    return [`@@ -1,${diffLines.length} +0,0 @@`, ...diffLines].join("\n") + "\n";
+  }
+
+  const hasHunk = lines.some((line) => line.startsWith("@@"));
+  return (hasHunk ? lines : [`@@ -1,${diffLines.length} +1,${diffLines.length} @@`, ...diffLines]).join("\n") + "\n";
 }
 
 function responseItemOutputsByCallId(payloads: readonly unknown[]): Map<string, string> {

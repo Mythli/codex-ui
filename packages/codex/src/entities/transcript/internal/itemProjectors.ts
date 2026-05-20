@@ -349,16 +349,33 @@ const mimeTypesByExtension: Record<string, string> = {
 };
 
 function fileChange(change: Extract<CodexParsedThreadItem, { type: "fileChange" }>["changes"][number]): CodexTranscriptFile {
-  const stats = diffStat(change.diff ?? "");
+  const diff = fileChangeDiff(change);
+  const stats = diffStat(diff);
   return {
     path: change.path,
     action: fileActionLabel(change.kind?.type),
     additions: stats.additions,
     deletions: stats.deletions,
-    diff: change.diff,
+    diff,
     kind: change.kind,
     asset: assetOf(change as typeof change & AssetBearing)
   };
+}
+
+function fileChangeDiff(change: Extract<CodexParsedThreadItem, { type: "fileChange" }>["changes"][number]): string {
+  const record = change as typeof change & { content?: unknown; unified_diff?: unknown };
+  const unifiedDiff = typeof record.unified_diff === "string" ? record.unified_diff : undefined;
+  const diff = unifiedDiff ?? change.diff;
+  if (diff) {
+    return diff.endsWith("\n") ? diff : `${diff}\n`;
+  }
+
+  if (typeof record.content !== "string" || record.content.length === 0) {
+    return "";
+  }
+
+  const prefix = change.kind?.type === "delete" ? "-" : "+";
+  return `${record.content.replace(/\n$/, "").split("\n").map((line) => `${prefix}${line}`).join("\n")}\n`;
 }
 
 function isFinalAssistant(item: { phase?: string | null }): boolean {

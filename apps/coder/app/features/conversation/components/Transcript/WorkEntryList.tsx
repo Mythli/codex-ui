@@ -19,30 +19,26 @@ import {
   UnsupportedDetails
 } from "./WorkDetails";
 import {
-  shouldFlattenActivitySummary,
-  visibleWorkEntries
+  shouldFlattenActivitySummary
 } from "./transcriptState";
 import styles from "./Transcript.module.css";
 
 export function WorkEntryList({
   cwd,
   entries,
-  hiddenActivityId,
   markdownComponents
 }: {
   cwd?: string;
   entries: readonly CodexWorkEntry[];
-  hiddenActivityId?: string;
   markdownComponents?: MarkdownComponents;
 }) {
-  const visibleEntries = entries.flatMap((entry) => visibleWorkEntries(entry, hiddenActivityId));
-  if (visibleEntries.length === 0) {
+  if (entries.length === 0) {
     return null;
   }
 
   return (
-    <div className={styles.workHistory} data-testid="work-entry-list">
-      {visibleEntries.map((entry) => <WorkEntryView cwd={cwd} entry={entry} key={entry.id} markdownComponents={markdownComponents} />)}
+    <div aria-label="Work timeline entries" className={styles.workHistory} data-testid="work-entry-list" role="group">
+      {entries.map((entry) => <WorkEntryView cwd={cwd} entry={entry} key={entry.id} markdownComponents={markdownComponents} />)}
     </div>
   );
 }
@@ -83,9 +79,9 @@ export function WorkEntryView({
     case "command":
       return <CommandActivityRow entry={entry} />;
     case "tool":
-      return <ActivityChildRow defaultExpanded={entry.defaultExpanded} icon={entry.icon} status={entry.status} title={entry.title}><ToolDetails entry={entry} /></ActivityChildRow>;
+      return <ActivityChildRow defaultExpanded={entry.defaultExpanded} icon={entry.icon} id={entry.id} status={entry.status} title={entry.title}><ToolDetails entry={entry} /></ActivityChildRow>;
     case "unsupported":
-      return <ActivityChildRow defaultExpanded={entry.defaultExpanded} icon="other" status={entry.status} title={entry.title}><UnsupportedDetails entry={entry} /></ActivityChildRow>;
+      return <ActivityChildRow defaultExpanded={entry.defaultExpanded} icon="other" id={entry.id} status={entry.status} title={entry.title}><UnsupportedDetails entry={entry} /></ActivityChildRow>;
     default:
       return null;
   }
@@ -106,9 +102,9 @@ function ActivitySummaryItemView({
     case "fileChange":
       return <FileChangeTimelineFiles cwd={cwd} entry={entry} />;
     case "tool":
-      return <ActivityChildRow defaultExpanded={entry.defaultExpanded} icon={entry.icon} status={entry.status} title={entry.title}><ToolDetails entry={entry} /></ActivityChildRow>;
+      return <ActivityChildRow defaultExpanded={entry.defaultExpanded} icon={entry.icon} id={entry.id} status={entry.status} title={entry.title}><ToolDetails entry={entry} /></ActivityChildRow>;
     case "unsupported":
-      return <ActivityChildRow defaultExpanded={entry.defaultExpanded} icon="other" status={entry.status} title={entry.title}><UnsupportedDetails entry={entry} /></ActivityChildRow>;
+      return <ActivityChildRow defaultExpanded={entry.defaultExpanded} icon="other" id={entry.id} status={entry.status} title={entry.title}><UnsupportedDetails entry={entry} /></ActivityChildRow>;
     default:
       return <WorkEntryView cwd={cwd} entry={entry} markdownComponents={markdownComponents} />;
   }

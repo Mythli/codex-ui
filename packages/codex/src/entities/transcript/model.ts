@@ -168,13 +168,25 @@ export type CodexAssistantTurnBlock = {
   cwd?: string;
   status: CodexTranscriptTurnStatus;
   source: CodexTranscriptTurnSource;
+  displayState: CodexAssistantTurnDisplayState;
   durationMs?: number;
   startedAtMs?: number;
   completedAtMs?: number;
+  finalAnswer?: CodexFinalAnswer;
   segments: CodexAssistantTurnSegment[];
   artifacts: {
     filesChanged?: CodexFileChangeEntry;
   };
+};
+
+export type CodexAssistantTurnDisplayState =
+  | "thinking-placeholder"
+  | "work-block"
+  | "answer-only";
+
+export type CodexFinalAnswer = {
+  id: string;
+  text: string;
 };
 
 export type CodexAssistantTurnSegment =
@@ -198,6 +210,7 @@ export type CodexImageBlock = {
 
 export type CodexWorkSegment = {
   type: "work";
+  displayState: "work-block";
   id: string;
   status: CodexTranscriptTurnStatus;
   durationMs?: number;
@@ -205,7 +218,7 @@ export type CodexWorkSegment = {
   completedAtMs?: number;
   currentActivity?: CodexCurrentActivity;
   headline: {
-    label: string;
+    label: "Working" | "Worked" | "Failed";
     durationLabel?: string;
     defaultExpanded: boolean;
     hasEntries: boolean;

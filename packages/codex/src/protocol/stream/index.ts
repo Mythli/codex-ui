@@ -10,10 +10,8 @@ export {
   parseRolloutJsonlEntries,
   parseRolloutJsonlTokenUsage,
   parseRolloutJsonlThreadTurns,
-  parseResponseItemThreadItems,
   parseRolloutTokenUsage,
   parseRolloutJsonlThreadItemsByTurn,
-  rolloutRecordsByTurn,
-  responseItemToThreadItem
+  rolloutRecordsByTurn
 } from "./response-items.js";
 export type { CodexParsedThreadTokenUsage, CodexParsedTokenUsageBreakdown, CodexRolloutEntry } from "./response-items.js";

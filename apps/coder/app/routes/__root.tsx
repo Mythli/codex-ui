@@ -2,7 +2,6 @@ import { createRootRoute, HeadContent, Outlet, Scripts, useMatches } from "@tans
 import { useState } from "react";
 import { createQueryClient } from "../core/queryClient";
 import { CoderUIProvider } from "../common/providers/CoderUIProvider";
-import { FixturePlaybackConnector } from "../features/fixturePlayback";
 import { CoderReduxProvider } from "../store/provider";
 import type { CoderInitialData } from "../features/conversation/state/initialData";
 import "../theme.css";
@@ -24,7 +23,6 @@ function RootComponent() {
       queryClient={queryClient}
     >
       <CoderReduxProvider initialData={initialData}>
-        <FixturePlaybackConnector />
         <Outlet />
       </CoderReduxProvider>
     </CoderUIProvider>

@@ -1,6 +1,5 @@
 import type { Namespace, Socket } from "socket.io";
 import {
-  AppServerClient,
   parseCodexRequestParams,
   type CodexProtocolMetadata,
   type CodexRequestMethod,
@@ -8,11 +7,9 @@ import {
   type CodexTransport
 } from "@taylordb/codex/server";
 import {
-  type CodexAssetRegistry
-} from "./middlewares/assets/index.js";
-import {
-  createAppCodexMiddlewareTransport,
-  getSharedCodexBackend
+  type CoderApiLogger,
+  type CreateCodexBackendTransport,
+  type LiveCodexBackendProvider
 } from "./codex-backend.js";
 
 type SocketRequest = {
@@ -27,18 +24,6 @@ type SocketIoResponse =
   | { ok: false; error: unknown };
 
 type RequestAck = (response: SocketIoResponse) => void;
-
-const slowRequestMs = 500;
-// AppServerClient times out at 10s and emits protocol responseError traffic.
-// Keep the socket ACK timeout higher so reducers can clear active requests first.
-const socketRequestTimeoutMs = 12_000;
-const slowNotifyMs = 1_000;
-const largeOutgoingPacketBytes = 1_000_000;
-
-export type AppCodexSocketServerOptions = {
-  assets: CodexAssetRegistry;
-  sessions?: AppCodexSessionRegistry;
-};
 
 export type AppCodexSessionContext = {
   id: string;
@@ -59,6 +44,12 @@ type AppCodexSessionRecord = AppCodexSessionContext & {
 export class AppCodexSessionRegistry {
   private readonly sessions = new Map<string, AppCodexSessionRecord>();
   private backendResolver?: AppCodexBackendResolver;
+
+  constructor(private readonly options: {
+    largeOutgoingPacketBytes?: number;
+    logger?: CoderApiLogger;
+    shouldCloseBackend?: (backend: CodexTransport) => boolean;
+  } = {}) {}
 
   useBackendResolver(resolver: AppCodexBackendResolver): void {
     this.backendResolver = resolver;
@@ -115,7 +106,7 @@ export class AppCodexSessionRegistry {
 
     session.unsubscribeTraffic?.();
     session.unsubscribeDiagnostic?.();
-    session.backend?.close();
+    this.closeBackend(session.backend);
     session.backend = backend;
     session.unsubscribeTraffic = backend.onTraffic((traffic) => {
       this.emit(session.id, "traffic", traffic);
@@ -139,7 +130,7 @@ export class AppCodexSessionRegistry {
       sessionId,
       socketEvent: event,
       payload
-    });
+    }, this.options, this.options.logger);
     for (const socket of session.sockets) {
       socket.emit(event, payload);
     }
@@ -161,15 +152,34 @@ export class AppCodexSessionRegistry {
     for (const session of this.sessions.values()) {
       session.unsubscribeTraffic?.();
       session.unsubscribeDiagnostic?.();
-      session.backend?.close();
+      this.closeBackend(session.backend);
     }
     this.sessions.clear();
+  }
+
+  private closeBackend(backend: CodexTransport | undefined): void {
+    if (!backend) {
+      return;
+    }
+    if (this.options.shouldCloseBackend?.(backend) === false) {
+      return;
+    }
+    backend.close();
   }
 }
 
 export function attachAppCodexNamespace(
   namespace: Namespace,
-  options: AppCodexSocketServerOptions
+  options: {
+    createBackendTransport: CreateCodexBackendTransport;
+    largeOutgoingPacketBytes: number;
+    liveBackend: LiveCodexBackendProvider;
+    logger: CoderApiLogger;
+    requestTimeoutMs: number;
+    sessions: AppCodexSessionRegistry;
+    slowNotifyMs: number;
+    slowRequestMs: number;
+  }
 ): AppCodexSocketServer {
   const server = new AppCodexSocketServer(namespace, options);
   server.attach();
@@ -178,28 +188,31 @@ export function attachAppCodexNamespace(
 
 export class AppCodexSocketServer {
   readonly sessions: AppCodexSessionRegistry;
-  private readonly liveBackend: CodexTransport & {
-    ensureReady(reason?: string): Promise<CodexTransport>;
-    shutdown(): void;
-    start(): void;
-  };
+  private readonly largeOutgoingPacketBytes: number;
+  private readonly logger: CoderApiLogger;
+  private readonly requestTimeoutMs: number;
+  private readonly slowNotifyMs: number;
+  private readonly slowRequestMs: number;
 
   constructor(
     private readonly namespace: Namespace,
-    private readonly options: AppCodexSocketServerOptions
+    private readonly options: Parameters<typeof attachAppCodexNamespace>[1]
   ) {
-    this.sessions = options.sessions ?? new AppCodexSessionRegistry();
-    this.liveBackend = getSharedCodexBackend(options.assets);
+    this.sessions = options.sessions;
+    this.largeOutgoingPacketBytes = options.largeOutgoingPacketBytes;
+    this.logger = options.logger;
+    this.requestTimeoutMs = options.requestTimeoutMs;
+    this.slowNotifyMs = options.slowNotifyMs;
+    this.slowRequestMs = options.slowRequestMs;
   }
 
   attach(): void {
-    this.liveBackend.start();
     this.namespace.on("connection", (socket) => this.attachSocket(socket));
   }
 
   close(): void {
     this.sessions.closeAll();
-    this.liveBackend.shutdown();
+    this.options.liveBackend.close();
     this.namespace.emit("closed", { exitCode: null, signal: null });
   }
 
@@ -210,10 +223,10 @@ export class AppCodexSocketServer {
       const startedAt = Date.now();
       void withTimeout(
         this.handleRequest(session, request),
-        socketRequestTimeoutMs,
-        () => new Error(`Codex socket request timed out after ${socketRequestTimeoutMs}ms: ${request.method}`),
+        this.requestTimeoutMs,
+        () => new Error(`Codex socket request timed out after ${this.requestTimeoutMs}ms: ${request.method}`),
         (outcome) => {
-          logBackendEvent("socket:request:late", {
+          this.log("socket:request:late", {
             sessionId: session.id,
             socketId: socket.id,
             method: request.method,
@@ -232,20 +245,21 @@ export class AppCodexSocketServer {
             method: request.method,
             params: request.params,
             payload: result
-          });
+          }, { largeOutgoingPacketBytes: this.largeOutgoingPacketBytes }, this.logger);
           logSlowRequest({
             event: "socket:request:slow",
             sessionId: session.id,
             socketId: socket.id,
             method: request.method,
             params: request.params,
-            startedAt
-          });
+            startedAt,
+            thresholdMs: this.slowRequestMs
+          }, this.logger);
           ack({ ok: true, result });
         })
         .catch((error: unknown) => {
           const serialized = serializeError(error);
-          logBackendEvent("socket:request:error", {
+          this.log("socket:request:error", {
             sessionId: session.id,
             socketId: socket.id,
             method: request.method,
@@ -261,7 +275,7 @@ export class AppCodexSocketServer {
       const startedAt = Date.now();
       void this.handleNotify(session, request).catch((error: unknown) => {
         const message = String(error instanceof Error ? error.message : error);
-        logBackendEvent("socket:notify:error", {
+        this.log("socket:notify:error", {
           sessionId: session.id,
           socketId: socket.id,
           method: request.method,
@@ -278,13 +292,17 @@ export class AppCodexSocketServer {
           method: request.method,
           params: request.params,
           startedAt,
-          thresholdMs: slowNotifyMs
-        });
+          thresholdMs: this.slowNotifyMs
+        }, this.logger);
       });
     });
 
     socket.on("close", () => {
-      session.backend?.close();
+      const backend = session.backend;
+      if (backend && backend !== this.options.liveBackend) {
+        backend.close();
+        this.sessions.clearBackend(session.id, backend);
+      }
     });
   }
 
@@ -309,33 +327,34 @@ export class AppCodexSocketServer {
 
   private ensureBackend(session: AppCodexSessionRecord, codexBin?: string): Promise<CodexTransport> {
     return this.sessions.ensureBackend(session, () => codexBin
-      ? this.createLiveBackend(session, codexBin)
-      : this.liveBackend.ensureReady());
+      ? this.createBackendForSession(session, codexBin)
+      : this.options.liveBackend.ensureReady());
   }
 
-  private async createLiveBackend(session: AppCodexSessionRecord, codexBin?: string): Promise<CodexTransport> {
-    const client = new AppServerClient(codexBin);
-    const transport = createAppCodexMiddlewareTransport(client, {
-      assets: this.options.assets,
-      hydrateRequestResponses: false,
+  private async createBackendForSession(session: AppCodexSessionRecord, codexBin?: string): Promise<CodexTransport> {
+    const transport = await this.options.createBackendTransport({
+      codexBin,
       onDiagnostic: (text) => {
         this.sessions.emit(session.id, "diagnostic", text);
       }
     });
 
-    const initializePromise = client.initialize();
-    void client.waitForClose().then(() => {
-      logBackendEvent("backend:closed", {
-        sessionId: session.id,
-        exitCode: client.exitCode,
-        signal: client.signal
+    if (transport.waitForClose) {
+      void transport.waitForClose().then(() => {
+        this.log("backend:closed", {
+          sessionId: session.id,
+          exitCode: transport.exitCode ?? null,
+          signal: transport.signal ?? null
+        });
+        this.sessions.emit(session.id, "closed", { exitCode: transport.exitCode ?? null, signal: transport.signal ?? null });
+        this.sessions.clearBackend(session.id, transport);
       });
-      this.sessions.emit(session.id, "closed", { exitCode: client.exitCode, signal: client.signal });
-      this.sessions.clearBackend(session.id, transport);
-    });
-
-    await initializePromise;
+    }
     return transport;
+  }
+
+  private log(event: string, payload: unknown): void {
+    this.logger.info(event, payload);
   }
 }
 
@@ -356,10 +375,6 @@ function serializeError(error: unknown) {
   return error;
 }
 
-function logBackendEvent(event: string, payload: unknown): void {
-  console.info(`[codex backend] ${event}`, safeStringify(payload));
-}
-
 function logSlowRequest(input: {
   event: string;
   sessionId: string;
@@ -367,13 +382,13 @@ function logSlowRequest(input: {
   method: string;
   params?: unknown;
   startedAt: number;
-  thresholdMs?: number;
-}): void {
+  thresholdMs: number;
+}, logger: CoderApiLogger): void {
   const durationMs = Date.now() - input.startedAt;
-  if (durationMs < (input.thresholdMs ?? slowRequestMs)) {
+  if (durationMs < input.thresholdMs) {
     return;
   }
-  logBackendEvent(input.event, {
+  logger.info(input.event, {
     sessionId: input.sessionId,
     socketId: input.socketId,
     method: input.method,
@@ -390,12 +405,15 @@ function logLargeOutgoingPacket(input: {
   method?: string;
   params?: unknown;
   payload: unknown;
-}): void {
-  const sizeBytes = jsonSizeBytes(input.payload);
-  if (sizeBytes < largeOutgoingPacketBytes) {
+}, options: { largeOutgoingPacketBytes?: number } = {}, logger?: CoderApiLogger): void {
+  if (!logger) {
     return;
   }
-  logBackendEvent(input.event, {
+  const sizeBytes = jsonSizeBytes(input.payload);
+  if (sizeBytes < (options.largeOutgoingPacketBytes ?? Number.POSITIVE_INFINITY)) {
+    return;
+  }
+  logger.info(input.event, {
     sessionId: input.sessionId,
     socketId: input.socketId,
     socketEvent: input.socketEvent,

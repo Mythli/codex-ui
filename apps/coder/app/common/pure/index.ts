@@ -11,7 +11,7 @@ export { FloatingOverlay, type FloatingOverlayProps, type FloatingOverlayRenderT
 export { IconButton } from "./IconButton";
 export { ImageStrip, type ImageStripItem } from "./ImageStrip";
 export { Input, Select, Textarea } from "./Input/Input";
-export { Markdown, type MarkdownComponents } from "./Markdown/Markdown";
+export { Markdown, type MarkdownComponents, type MarkdownUrlTransform } from "./Markdown/Markdown";
 export { MenuItem, MenuList } from "./Menu";
 export { Modal, type ModalProps } from "./Modal";
 export { Pagination, type PaginationProps } from "./Pagination";

@@ -24,17 +24,9 @@ export function getAppSessionId(): string {
 }
 
 export function getAppSocketAuth(): Record<string, string> {
-  const locationSearch = typeof window === "undefined" ? "" : window.location.search;
   return {
-    appSessionId: scopedAppSessionId(getAppSessionId(), locationSearch),
-    locationSearch
+    appSessionId: getAppSessionId()
   };
-}
-
-function scopedAppSessionId(baseSessionId: string, locationSearch: string): string {
-  const searchParams = new URLSearchParams(locationSearch.startsWith("?") ? locationSearch : `?${locationSearch}`);
-  const fixtureId = searchParams.get("fixture");
-  return `${baseSessionId}:${fixtureId ? `fixture:${fixtureId}` : "live"}`;
 }
 
 function createSessionId(): string {
