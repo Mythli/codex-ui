@@ -1,0 +1,921 @@
+.messages {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 30px;
+  height: 100%;
+  margin: 0 auto;
+  max-width: 1240px;
+  min-height: 0;
+  min-width: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 56px 48px 132px;
+  width: 100%;
+}
+
+.turn {
+  display: contents;
+}
+
+.message {
+  border-radius: var(--coder-radius-md);
+  color: var(--coder-text);
+  font-size: 20px;
+  line-height: 1.52;
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  padding: 0;
+  word-break: break-word;
+}
+
+.message_user {
+  align-self: flex-end;
+  background: var(--coder-chat-user-bg);
+  border-radius: 18px;
+  box-shadow: none;
+  max-width: min(760px, 76%);
+  padding: 11px 18px;
+}
+
+.message_assistant {
+  align-self: flex-start;
+  background: transparent;
+  width: min(1040px, 100%);
+}
+
+.message_final {
+  margin-top: -4px;
+}
+
+.message_withOverlay {
+  padding-right: 40px;
+  position: relative;
+}
+
+.messageCopyButton {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--coder-muted);
+  cursor: pointer;
+  display: inline-flex;
+  height: 24px;
+  justify-content: center;
+  opacity: 0;
+  padding: 0;
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+  top: 4px;
+  transition:
+    color 120ms ease,
+    opacity 120ms ease;
+  width: 24px;
+}
+
+.message_withOverlay:hover .messageCopyButton,
+.messageCopyButton:focus-visible,
+.messageCopyButton:hover {
+  color: var(--coder-text);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.message_system {
+  align-self: stretch;
+  background: var(--coder-surface-muted);
+  border: 1px solid var(--coder-border);
+  color: var(--coder-muted);
+  padding: 10px 12px;
+}
+
+.messageImages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.messageImage {
+  border: 1px solid var(--coder-border);
+  border-radius: 10px;
+  display: block;
+  max-height: 180px;
+  max-width: min(260px, 100%);
+  object-fit: contain;
+}
+
+.message_activity {
+  align-self: stretch;
+  background: transparent;
+  border-radius: 0;
+  color: var(--coder-muted);
+  padding: 0;
+}
+
+.message_fileChanges {
+  align-self: flex-start;
+  display: grid;
+  gap: 14px;
+  width: min(1040px, 100%);
+}
+
+.fileChangeUndoStatus,
+.fileChangeUndoError {
+  border-radius: var(--coder-radius-sm);
+  font-size: var(--coder-font-size-sm);
+  line-height: 1.35;
+  padding: 8px 10px;
+}
+
+.fileChangeUndoStatus {
+  background: color-mix(in srgb, var(--coder-success) 12%, transparent);
+  color: var(--coder-success);
+}
+
+.fileChangeUndoError {
+  background: color-mix(in srgb, var(--coder-danger) 12%, transparent);
+  color: var(--coder-danger);
+}
+
+.workDivider {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--coder-muted);
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  gap: 9px;
+  grid-template-columns: auto auto 1fr;
+  line-height: 1.35;
+  padding: 0;
+  text-align: left;
+  width: 100%;
+}
+
+.workDivider:hover {
+  color: var(--coder-text);
+}
+
+.workDividerLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workDividerChevron,
+.activityChevron {
+  color: currentColor;
+  flex: 0 0 auto;
+  height: 15px;
+  opacity: 0.65;
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease;
+  width: 15px;
+}
+
+.workDivider[data-work-divider-expanded='true'] .workDividerChevron,
+.activitySummaryButton[aria-expanded='true'] .activityChevron,
+.activityChildButton[aria-expanded='true'] .activityChevron {
+  opacity: 1;
+  transform: rotate(90deg);
+}
+
+.workDividerLine {
+  border-top: 1px solid var(--coder-border);
+  min-width: 48px;
+}
+
+.workMarker {
+  color: var(--coder-muted);
+  font-size: var(--coder-font-size-base);
+  padding: 0;
+}
+
+.workMarker > summary {
+  align-items: center;
+  border-bottom: 1px solid var(--coder-border);
+  cursor: pointer;
+  display: flex;
+  gap: var(--coder-space-2);
+  list-style: none;
+  padding: 0 0 18px;
+}
+
+.workMarker > summary::-webkit-details-marker {
+  display: none;
+}
+
+.workMarker > summary::after {
+  color: var(--coder-muted);
+  content: '›';
+  font-size: 16px;
+  line-height: 1;
+  transform: rotate(0deg);
+  transition: transform 120ms ease;
+}
+
+.workMarker[open] > summary::after {
+  transform: rotate(90deg);
+}
+
+.workHistory {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 30px 0 4px;
+}
+
+.currentActivityRow {
+  align-items: flex-start;
+  color: var(--coder-muted);
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+  max-width: min(1040px, 100%);
+  min-width: 0;
+}
+
+.currentActivityRow .workIcon {
+  animation: work-activity-pulse 1.8s ease-in-out infinite;
+  margin-top: 2px;
+}
+
+.currentActivityBody {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.currentActivityTitle {
+  color: var(--coder-muted);
+  font-size: 18px;
+  line-height: 1.35;
+  min-width: 0;
+}
+
+.currentActivityDescription {
+  color: var(--coder-muted);
+  font-size: 15px;
+  line-height: 1.45;
+  min-width: 0;
+}
+
+.currentActivityCommand {
+  color: var(--coder-muted);
+  font-family: var(--coder-font-mono);
+  font-size: 14px;
+  line-height: 1.45;
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workText {
+  color: var(--coder-text);
+  font-size: 20px;
+  line-height: 1.52;
+  max-width: min(1040px, 100%);
+  min-width: 0;
+}
+
+.workTextMuted {
+  color: var(--coder-muted);
+  font-size: 20px;
+  line-height: 1.52;
+  max-width: min(1040px, 100%);
+  min-width: 0;
+}
+
+.workSummaryRow {
+  align-items: center;
+  color: var(--coder-muted);
+  display: flex;
+  font-size: 18px;
+  gap: 10px;
+  line-height: 1.35;
+  min-height: 28px;
+}
+
+.workActivityRow {
+  color: var(--coder-muted);
+  max-width: min(1040px, 100%);
+  min-width: 0;
+}
+
+.workActivitySummary,
+.workActivityRow:not(details) {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  list-style: none;
+  min-height: 28px;
+  min-width: 0;
+}
+
+.workActivitySummary {
+  cursor: pointer;
+}
+
+.workActivitySummary::-webkit-details-marker {
+  display: none;
+}
+
+.workActivityLabel {
+  color: var(--coder-muted);
+  font-size: 18px;
+  line-height: 1.35;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workActivityPath {
+  color: var(--coder-info);
+}
+
+.workActivityDetails {
+  border-left: 1px solid var(--coder-border);
+  color: var(--coder-muted);
+  display: grid;
+  gap: 8px;
+  margin: 8px 0 2px 9px;
+  padding: 3px 0 0 20px;
+}
+
+.activityGroup,
+.activityChildRow {
+  color: var(--coder-muted);
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.activitySummaryButton,
+.activityChildButton {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--coder-muted);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  gap: 10px;
+  justify-content: flex-start;
+  line-height: 1.35;
+  min-height: 28px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0;
+  text-align: left;
+  width: fit-content;
+}
+
+.activitySummaryButton:hover,
+.activityChildButton:hover {
+  color: var(--coder-text);
+}
+
+.activitySummaryButton:hover .activityChevron,
+.activityChildButton:hover .activityChevron {
+  opacity: 1;
+}
+
+.timelineCommandRow {
+  color: var(--coder-muted);
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.timelineCommandButton {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--coder-muted);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  gap: 8px;
+  justify-content: flex-start;
+  line-height: 1.35;
+  min-height: 28px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0;
+  text-align: left;
+  width: fit-content;
+}
+
+.timelineCommandButton:hover {
+  color: var(--coder-text);
+}
+
+.timelineCommandButton:hover .activityChevron {
+  opacity: 1;
+}
+
+.timelineCommandButton[aria-expanded='true'] .activityChevron {
+  opacity: 1;
+  transform: rotate(90deg);
+}
+
+.timelineCommandText {
+  color: var(--coder-muted);
+  font-size: 18px;
+  line-height: 1.35;
+  min-height: 28px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fileTimelineList {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.fileTimelineRow {
+  align-items: baseline;
+  color: var(--coder-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 18px;
+  gap: 5px;
+  line-height: 1.35;
+  min-height: 28px;
+  min-width: 0;
+}
+
+.fileTimelineAction {
+  color: var(--coder-muted);
+}
+
+.fileTimelinePath {
+  color: var(--coder-info);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.changeDot {
+  background: var(--coder-info);
+  border-radius: 999px;
+  display: inline-block;
+  flex: 0 0 auto;
+  height: 8px;
+  margin-left: 4px;
+  width: 8px;
+}
+
+.workIcon {
+  color: currentColor;
+  flex: 0 0 auto;
+  height: 20px;
+  opacity: 0.72;
+  width: 20px;
+}
+
+.detailLine {
+  color: var(--coder-muted);
+  font-size: 14px;
+  line-height: 1.45;
+  max-width: min(860px, 100%);
+}
+
+.commandDetails,
+.toolDetails {
+  color: var(--coder-text);
+  display: grid;
+  gap: 12px;
+  max-width: min(1040px, 100%);
+  min-width: 0;
+}
+
+.shellCard {
+  background: var(--coder-surface-muted);
+  border: 1px solid var(--coder-border);
+  border-radius: var(--coder-radius-sm);
+  color: var(--coder-text);
+  display: grid;
+  gap: 18px;
+  max-width: min(1040px, 100%);
+  min-height: 150px;
+  min-width: 0;
+  padding: 18px 22px 16px;
+  position: relative;
+}
+
+.shellTitle {
+  color: var(--coder-muted);
+  font-size: 18px;
+  line-height: 1.35;
+}
+
+.shellCommand,
+.shellOutput {
+  background: transparent;
+  border: 0;
+  color: var(--coder-text);
+  font-family: var(--coder-font-mono);
+  font-size: 18px;
+  line-height: 1.55;
+  margin: 0;
+  overflow: auto;
+  padding: 0;
+  white-space: pre-wrap;
+}
+
+.shellOutput {
+  color: var(--coder-muted);
+  max-height: 220px;
+}
+
+.shellPrompt {
+  color: var(--coder-text);
+}
+
+.shellStatusSuccess,
+.shellStatusError {
+  bottom: 16px;
+  color: var(--coder-muted);
+  font-size: 18px;
+  line-height: 1.35;
+  position: absolute;
+  right: 22px;
+}
+
+.shellStatusError {
+  color: var(--coder-diff-remove);
+}
+
+.commandCard {
+  color: var(--coder-text);
+  display: grid;
+  gap: 12px;
+  max-width: min(1040px, 100%);
+  min-width: 0;
+}
+
+.commandSummary {
+  align-items: center;
+  color: var(--coder-muted);
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+}
+
+.commandIcon {
+  align-items: center;
+  border: 1px solid var(--coder-border-strong);
+  border-radius: var(--coder-radius-xs);
+  color: var(--coder-muted);
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 11px;
+  height: 18px;
+  justify-content: center;
+  line-height: 1;
+  width: 18px;
+}
+
+.labeledOutput {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.outputTitle {
+  color: var(--coder-text);
+  font-size: 18px;
+  line-height: 1.35;
+}
+
+.outputShell {
+  background: var(--coder-surface-muted);
+  border: 1px solid var(--coder-border);
+  border-radius: var(--coder-radius-sm);
+  overflow: hidden;
+}
+
+.outputLanguage {
+  color: var(--coder-muted);
+  font-family: var(--coder-font-mono);
+  font-size: var(--coder-font-size-sm);
+  padding: 10px 12px 0;
+}
+
+.output {
+  background: var(--coder-surface-muted);
+  border: 1px solid var(--coder-border);
+  border-radius: var(--coder-radius-sm);
+  color: var(--coder-text);
+  font-family: var(--coder-font-mono);
+  font-size: 16px;
+  line-height: 1.45;
+  margin: 0;
+  max-height: 220px;
+  max-width: min(860px, 100%);
+  overflow: auto;
+  padding: 8px 10px;
+  white-space: pre-wrap;
+}
+
+.outputEmbedded {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  max-width: 100%;
+  padding-top: 12px;
+}
+
+.workActivityActive .workActivityLabel {
+  color: var(--coder-muted);
+}
+
+.workActivityActive .workIcon {
+  animation: work-activity-pulse 1.8s ease-in-out infinite;
+}
+
+.fileProgressRow {
+  align-items: center;
+  color: var(--coder-muted);
+  display: flex;
+  font-size: 18px;
+  gap: 9px;
+  line-height: 1.35;
+  min-height: 28px;
+  min-width: 0;
+}
+
+.fileProgressRow .workIcon {
+  animation: work-activity-pulse 1.8s ease-in-out infinite;
+}
+
+.fileProgressAction {
+  color: var(--coder-muted);
+  flex: 0 0 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fileProgressPath {
+  color: var(--coder-info);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fileCard {
+  align-self: flex-start;
+  background: color-mix(in srgb, var(--coder-surface) 76%, var(--coder-bg));
+  border: 1px solid var(--coder-border-strong);
+  border-radius: 12px;
+  color: var(--coder-text);
+  flex: 0 0 auto;
+  max-width: min(1040px, 100%);
+  overflow: hidden;
+  width: min(1040px, 100%);
+}
+
+.fileCardHeader {
+  align-items: center;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: auto 1fr auto;
+  padding: 24px;
+}
+
+.fileCardIcon {
+  align-items: center;
+  background: color-mix(in srgb, var(--coder-bg) 74%, var(--coder-surface));
+  border-radius: 12px;
+  color: var(--coder-muted);
+  display: inline-flex;
+  height: 58px;
+  justify-content: center;
+  width: 58px;
+}
+
+.fileCardIcon svg {
+  height: 24px;
+  stroke-width: 1.8;
+  width: 24px;
+}
+
+.fileCardTitleGroup {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.fileCardTitle {
+  color: var(--coder-text);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.fileCardStats,
+.fileStats {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.fileCardStats {
+  font-size: 18px;
+}
+
+.fileCardActions {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+
+.fileCardActions button {
+  background: transparent;
+  border: 0;
+  color: var(--coder-text);
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+}
+
+.fileCardActions button:last-child {
+  border: 1px solid var(--coder-border-strong);
+  border-radius: 10px;
+  padding: 8px 16px;
+}
+
+.fileRows {
+  border-top: 1px solid var(--coder-border);
+  display: grid;
+}
+
+.fileRow {
+  background: color-mix(in srgb, var(--coder-surface-muted) 86%, var(--coder-bg));
+  border-bottom: 1px solid color-mix(in srgb, var(--coder-border) 70%, transparent);
+  min-width: 0;
+}
+
+.fileRow:nth-child(odd) {
+  background: color-mix(in srgb, var(--coder-surface-muted) 78%, var(--coder-bg));
+}
+
+.fileRow > summary {
+  align-items: center;
+  cursor: pointer;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 1fr auto auto;
+  list-style: none;
+  min-width: 0;
+  padding: 18px 24px;
+}
+
+.fileRow > summary::-webkit-details-marker {
+  display: none;
+}
+
+.fileRow > summary::after {
+  color: var(--coder-muted);
+  content: '⌄';
+  font-size: 14px;
+  margin-left: 8px;
+}
+
+.filePath {
+  color: var(--coder-text);
+  font-size: 18px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.additions {
+  color: var(--coder-diff-add);
+}
+
+.deletions {
+  color: var(--coder-diff-remove);
+}
+
+.workImage {
+  margin: 2px 0 0;
+  max-width: min(320px, 100%);
+}
+
+.imageStrip {
+  align-self: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: min(520px, 100%);
+}
+
+.workImage img {
+  border: 1px solid var(--coder-border);
+  border-radius: var(--coder-radius-sm);
+  display: block;
+  height: auto;
+  max-height: 260px;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.activityEmpty {
+  color: var(--coder-faint);
+  font-size: var(--coder-font-size-sm);
+}
+
+.empty {
+  align-items: center;
+  border: 1px dashed var(--coder-border-strong);
+  border-radius: var(--coder-radius-md);
+  color: var(--coder-muted);
+  display: flex;
+  justify-content: center;
+  min-height: 160px;
+  padding: var(--coder-space-4);
+  text-align: center;
+}
+
+@media (max-width: 760px) {
+  .messages {
+    gap: 22px;
+    padding: 28px 18px 112px;
+  }
+
+  .message {
+    font-size: 17px;
+  }
+
+  .workText,
+  .workTextMuted {
+    font-size: 17px;
+  }
+
+  .workActivityLabel,
+  .filePath {
+    font-size: 15px;
+  }
+
+  .fileCardTitle {
+    font-size: 17px;
+  }
+
+  .message_user,
+  .message_assistant,
+  .workText,
+  .workTextMuted,
+  .workActivityRow {
+    max-width: 100%;
+  }
+
+  .fileCardHeader {
+    align-items: start;
+    grid-template-columns: auto 1fr;
+  }
+
+  .fileCardActions {
+    grid-column: 1 / -1;
+    justify-self: end;
+  }
+
+  .fileRow > summary {
+    align-items: start;
+    grid-template-columns: 1fr;
+  }
+
+  .workMarker {
+    font-size: var(--coder-font-size-base);
+  }
+}
+
+@keyframes work-activity-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}

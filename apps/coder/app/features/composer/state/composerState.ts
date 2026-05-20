@@ -2,14 +2,14 @@ import type {
   CodexModelReroute,
   CodexRuntimeSessionSettings,
   CodexThreadTokenUsage
-} from "@taylordb/codex";
-import type { CodexAppServerModel } from "@taylordb/codex/protocol";
+} from "@coder/types";
+import type { CodexAppServerModel } from "@coder/types";
 import type {
   CoderComposerAttachment,
   CoderComposerState,
   CoderPermissionMode,
   CoderReasoningEffort
-} from "../types";
+} from "@coder/types";
 
 export const coderReasoningEfforts: CoderReasoningEffort[] = [
   "none",

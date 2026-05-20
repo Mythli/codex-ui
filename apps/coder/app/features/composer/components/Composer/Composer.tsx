@@ -1,10 +1,10 @@
-import type { CodexThreadTokenUsage } from "@taylordb/codex";
-import type { CodexAppServerModel } from "@taylordb/codex/protocol";
+import type { CodexThreadTokenUsage } from "@coder/types";
+import type { CodexAppServerModel } from "@coder/types";
 import type {
   CoderComposerAttachment,
   CoderPermissionMode,
   CoderReasoningEffort
-} from "../../types";
+} from "@coder/types";
 import { CodexChatBox } from "../ChatBox/CodexChatBox";
 import styles from "./Composer.module.css";
 

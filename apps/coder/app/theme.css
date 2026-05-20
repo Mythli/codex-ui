@@ -12,6 +12,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Default baseline tokens and composition variables */
 button,
 input,
 select,
@@ -86,7 +87,6 @@ textarea {
   --coder-composer-submit-text: #1f1f1f;
   --coder-composer-context-ring-fill: rgba(255, 255, 255, 0.62);
   --coder-composer-context-ring-track: rgba(255, 255, 255, 0.18);
-  --coder-composer-spinner-track: rgba(255, 255, 255, 0.16);
 
   /* Semantic colors */
   --coder-success: #8bdc91;
@@ -201,7 +201,6 @@ textarea {
   --coder-composer-submit-text: #ffffff;
   --coder-composer-context-ring-fill: rgba(20, 24, 30, 0.62);
   --coder-composer-context-ring-track: rgba(20, 24, 30, 0.16);
-  --coder-composer-spinner-track: rgba(20, 24, 30, 0.16);
   --coder-success: #138a43;
   --coder-success-bg: rgba(19, 138, 67, 0.12);
   --coder-diff-add: var(--coder-success);

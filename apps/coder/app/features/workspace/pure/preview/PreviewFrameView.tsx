@@ -1,4 +1,4 @@
-import type { PreviewViewport } from "../../types";
+import type { PreviewViewport } from "@coder/types";
 import styles from "@app/common/pure/codex.module.css";
 
 export function PreviewFrameView({

@@ -35,6 +35,7 @@ type PromptTurnVisibilityResult = {
   promptValue: string;
   targetText: string;
   timeoutMs: number;
+  userMessageTimeoutMs: number;
   transcriptText: string;
   userMessageTexts: string[];
   workBlockTexts: string[];
@@ -258,7 +259,7 @@ export class ClickAppPage {
     await this.sendPromptAndExpectTurnWithin(text, {
       expectNoComposerAttachmentsBeforeSend: true,
       matchMode: "exact",
-      timeoutMs
+      userMessageTimeoutMs: timeoutMs
     });
   }
 
@@ -269,9 +270,11 @@ export class ClickAppPage {
       expectNoComposerAttachmentsBeforeSend?: boolean;
       matchMode?: "exact" | "contains";
       timeoutMs?: number;
+      userMessageTimeoutMs?: number;
     } = {}
   ): Promise<void> {
-    const timeoutMs = options.timeoutMs ?? 100;
+    const timeoutMs = options.timeoutMs ?? 10_000;
+    const userMessageTimeoutMs = options.userMessageTimeoutMs ?? 100;
     const matchMode = options.matchMode ?? "exact";
     const promptInput = this.page.getByTestId("prompt-input");
     const sendButton = this.page.getByTestId("send-prompt-button");
@@ -288,7 +291,8 @@ export class ClickAppPage {
         watcherId: turnWatcherId,
         expectedText,
         timeoutMs: waitTimeoutMs,
-        matchMode: textMatchMode
+        matchMode: textMatchMode,
+        userMessageTimeoutMs: waitForUserMessageMs
       } = payload;
       const browserWindow = window as typeof window & {
         codexPromptTurnWatchers?: Record<string, Promise<PromptTurnVisibilityResult>>;
@@ -330,6 +334,7 @@ export class ClickAppPage {
         promptValue: (document.querySelector("[data-testid='prompt-input']") as HTMLTextAreaElement | null)?.value ?? "",
         targetText: expectedText,
         timeoutMs: waitTimeoutMs,
+        userMessageTimeoutMs: waitForUserMessageMs,
         transcriptText: document.querySelector("[data-testid='chat-transcript']")?.textContent?.trim() ?? "",
         userMessageTexts: visibleUserMessageTexts(),
         workBlockTexts: visibleWorkBlockTexts()
@@ -347,6 +352,7 @@ export class ClickAppPage {
         let workBlockElapsedMs: number | undefined;
         let observer: MutationObserver | undefined;
         let timeout: number | undefined;
+        let userMessageTimeout: number | undefined;
         let clickTimeout: number | undefined;
         let settled = false;
 
@@ -355,10 +361,13 @@ export class ClickAppPage {
           if (timeout !== undefined) {
             window.clearTimeout(timeout);
           }
+          if (userMessageTimeout !== undefined) {
+            window.clearTimeout(userMessageTimeout);
+          }
           if (clickTimeout !== undefined) {
             window.clearTimeout(clickTimeout);
           }
-          button.removeEventListener("click", handleClick, { capture: true });
+          document.removeEventListener("click", handleClick, { capture: true });
         };
 
         const finish = (result: PromptTurnVisibilityResult) => {
@@ -402,6 +411,7 @@ export class ClickAppPage {
               promptValue: (document.querySelector("[data-testid='prompt-input']") as HTMLTextAreaElement | null)?.value ?? "",
               targetText: expectedText,
               timeoutMs: waitTimeoutMs,
+              userMessageTimeoutMs: waitForUserMessageMs,
               transcriptText: document.querySelector("[data-testid='chat-transcript']")?.textContent?.trim() ?? "",
               userMessageTexts: visibleUserMessageTexts(),
               workBlockTexts: visibleWorkBlockTexts()
@@ -409,7 +419,10 @@ export class ClickAppPage {
           }
         };
 
-        function handleClick() {
+        const startWatching = () => {
+          if (startedAt !== undefined) {
+            return;
+          }
           startedAt = performance.now();
           observer = new MutationObserver(check);
           observer.observe(document.body, {
@@ -420,6 +433,16 @@ export class ClickAppPage {
             subtree: true
           });
           check();
+          userMessageTimeout = window.setTimeout(() => {
+            check();
+            if (userMessageElapsedMs === undefined) {
+              finish({
+                ...diagnostics("user message was not visible before timeout", startedAt),
+                userMessageElapsedMs,
+                workBlockElapsedMs
+              });
+            }
+          }, waitForUserMessageMs);
           timeout = window.setTimeout(() => {
             finish({
               ...diagnostics("user message and running work block were not both visible before timeout", startedAt),
@@ -427,14 +450,23 @@ export class ClickAppPage {
               workBlockElapsedMs
             });
           }, waitTimeoutMs);
+        };
+
+        function handleClick(event: MouseEvent) {
+          const target = event.target instanceof Element
+            ? event.target.closest("[data-testid='send-prompt-button']")
+            : null;
+          if (target) {
+            startWatching();
+          }
         }
 
-        button.addEventListener("click", handleClick, { once: true, capture: true });
+        document.addEventListener("click", handleClick, { capture: true });
         clickTimeout = window.setTimeout(() => {
           finish(diagnostics("send button click was not observed"));
         }, 10_000);
       });
-    }, { watcherId, expectedText: options.expectedUserMessageText ?? text, timeoutMs, matchMode });
+    }, { watcherId, expectedText: options.expectedUserMessageText ?? text, timeoutMs, matchMode, userMessageTimeoutMs });
 
     await sendButton.click();
     const result = await this.page.evaluate(async (registeredWatcherId): Promise<PromptTurnVisibilityResult> => {
@@ -455,6 +487,9 @@ export class ClickAppPage {
     if (!result.ok) {
       throw new Error(`Prompt turn was not visible within ${timeoutMs}ms: ${JSON.stringify(result, null, 2)}`);
     }
+    if ((result.userMessageElapsedMs ?? Number.POSITIVE_INFINITY) > userMessageTimeoutMs) {
+      throw new Error(`User message became visible after ${result.userMessageElapsedMs}ms, over ${userMessageTimeoutMs}ms: ${JSON.stringify(result, null, 2)}`);
+    }
     if ((result.elapsedMs ?? Number.POSITIVE_INFINITY) > timeoutMs) {
       throw new Error(`Prompt turn became visible after ${result.elapsedMs}ms, over ${timeoutMs}ms: ${JSON.stringify(result, null, 2)}`);
     }
@@ -463,9 +498,7 @@ export class ClickAppPage {
   }
 
   async sendPromptWithFiles(text: string, filePaths: string[]): Promise<void> {
-    await this.page.getByTestId("composer-file-input").setInputFiles(filePaths);
-    await expect(this.page.getByTestId("composer-attachments").locator("img, [aria-hidden='true']").first())
-      .toBeVisible({ timeout: 10_000 });
+    await this.attachFilesAndExpectPreview(filePaths);
     await this.sendPromptAndExpectTurnWithin(text, {
       expectNoComposerAttachmentsBeforeSend: false,
       matchMode: "contains"
@@ -474,12 +507,66 @@ export class ClickAppPage {
   }
 
   async sendFilesOnly(filePaths: string[]): Promise<void> {
-    await this.page.getByTestId("composer-file-input").setInputFiles(filePaths);
-    await expect(this.page.getByTestId("composer-attachments").locator("img, [aria-hidden='true']").first())
-      .toBeVisible({ timeout: 10_000 });
+    await this.attachFilesAndExpectPreview(filePaths);
     await expect(this.page.getByTestId("send-prompt-button")).toBeEnabled({ timeout: 10_000 });
     await this.page.getByTestId("send-prompt-button").click();
     await expect(this.page.getByTestId("composer-attachments")).toHaveCount(0, { timeout: 30_000 });
+  }
+
+  private async attachFilesAndExpectPreview(filePaths: string[], timeoutMs = 30_000): Promise<void> {
+    await this.page.getByTestId("composer-file-input").setInputFiles(filePaths);
+
+    type AttachmentPreviewState = {
+      attachmentCount: number;
+      errorText?: string;
+      inputFileNames: string[];
+      trayText?: string;
+    };
+    let lastState: AttachmentPreviewState | undefined;
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+      lastState = await this.readAttachmentPreviewState();
+      if (lastState.errorText) {
+        throw new Error(`Composer attachment upload failed: ${lastState.errorText}`);
+      }
+      if (lastState.attachmentCount >= filePaths.length) {
+        await expect(this.page.getByTestId("composer-attachments").locator("img, [aria-hidden='true']").first())
+          .toBeVisible({ timeout: 5_000 });
+        return;
+      }
+      await this.page.waitForTimeout(250);
+    }
+
+    throw new Error(`Composer attachment previews did not render within ${timeoutMs}ms: ${JSON.stringify(lastState)}`);
+  }
+
+  private async readAttachmentPreviewState(): Promise<{
+    attachmentCount: number;
+    errorText?: string;
+    inputFileNames: string[];
+    trayText?: string;
+  }> {
+    const tray = this.page.getByTestId("composer-attachments");
+    const error = this.page.getByTestId("composer-attachment-error");
+    const [attachmentCount, errorCount, inputFileNames, trayCount] = await Promise.all([
+      tray.getByTestId("composer-attachment").count().catch(() => 0),
+      error.count().catch(() => 0),
+      this.page.getByTestId("composer-file-input").evaluate((input) => {
+        const files = (input as HTMLInputElement).files;
+        return files ? [...files].map((file) => file.name) : [];
+      }).catch(() => []),
+      tray.count().catch(() => 0)
+    ]);
+    const [errorText, trayText] = await Promise.all([
+      errorCount > 0 ? error.first().textContent({ timeout: 0 }).catch(() => undefined) : undefined,
+      trayCount > 0 ? tray.first().textContent({ timeout: 0 }).catch(() => undefined) : undefined
+    ]);
+    return {
+      attachmentCount,
+      errorText: errorText?.trim() || undefined,
+      inputFileNames,
+      trayText: trayText?.trim() || undefined
+    };
   }
 
   async waitForAssistantText(textOrPattern: string | RegExp, timeoutMs = 120_000): Promise<void> {
@@ -504,6 +591,11 @@ export class ClickAppPage {
       message: `expected an assistant message containing ${String(textOrPattern)}`,
       timeout: timeoutMs
     }).toBe(true);
+  }
+
+  async waitForComposerIdle(timeoutMs = 120_000): Promise<void> {
+    await expect(this.page.getByTestId("prompt-composer"))
+      .not.toHaveAttribute("aria-busy", "true", { timeout: timeoutMs });
   }
 
   async expectCurrentChatReloadsToSameTranscriptState(options: {
@@ -537,6 +629,423 @@ export class ClickAppPage {
         });
       }
       throw error;
+    }
+  }
+
+  async expectChatDoesNotShowLoaderFor(label: string, durationMs = 3_000): Promise<void> {
+    const result = await this.page.evaluate(async ({ durationMs: waitMs, label: checkLabel }) => {
+      const loadingSelector = '[data-testid="chat-loading"][aria-busy="true"]';
+      const snapshot = (reason: string) => ({
+        ok: false,
+        label: checkLabel,
+        reason,
+        currentChatId: document.querySelector("[data-testid='coder-shell']")?.getAttribute("data-current-chat-id"),
+        loadingText: document.querySelector(loadingSelector)?.textContent?.trim(),
+        transcriptText: document.querySelector("[data-testid='chat-transcript']")?.textContent?.trim(),
+        url: window.location.href
+      });
+
+      return await new Promise<{
+        currentChatId?: string | null;
+        label: string;
+        loadingText?: string;
+        ok: boolean;
+        reason?: string;
+        transcriptText?: string;
+        url?: string;
+      }>((resolve) => {
+        const startedAt = performance.now();
+        let observer: MutationObserver | undefined;
+        let interval: number | undefined;
+
+        const cleanup = () => {
+          observer?.disconnect();
+          if (interval !== undefined) {
+            window.clearInterval(interval);
+          }
+        };
+        const finish = (value: {
+          currentChatId?: string | null;
+          label: string;
+          loadingText?: string;
+          ok: boolean;
+          reason?: string;
+          transcriptText?: string;
+          url?: string;
+        }) => {
+          cleanup();
+          resolve(value);
+        };
+        const check = () => {
+          if (document.querySelector(loadingSelector)) {
+            finish(snapshot("chat loader became visible"));
+            return;
+          }
+          if (performance.now() - startedAt >= waitMs) {
+            finish({
+              ok: true,
+              label: checkLabel,
+              currentChatId: document.querySelector("[data-testid='coder-shell']")?.getAttribute("data-current-chat-id"),
+              transcriptText: document.querySelector("[data-testid='chat-transcript']")?.textContent?.trim(),
+              url: window.location.href
+            });
+          }
+        };
+
+        observer = new MutationObserver(check);
+        observer.observe(document.body, {
+          attributes: true,
+          attributeFilter: ["aria-busy", "data-testid", "class", "style"],
+          childList: true,
+          subtree: true
+        });
+        interval = window.setInterval(check, 50);
+        check();
+      });
+    }, { durationMs, label });
+
+    if (!result.ok) {
+      throw new Error(`${label}: chat loader should not appear after the first message is visible: ${JSON.stringify(result, null, 2)}`);
+    }
+  }
+
+  async expectCurrentChatStaysSelectedFor(threadId: string, label: string, durationMs = 3_000): Promise<void> {
+    const result = await this.page.evaluate(async ({ durationMs: waitMs, label: checkLabel, threadId: expectedThreadId }) => {
+      const selectedThreadId = () =>
+        document.querySelector("[data-testid='coder-shell']")?.getAttribute("data-current-chat-id");
+      const snapshot = (reason: string) => ({
+        ok: false,
+        label: checkLabel,
+        reason,
+        expectedThreadId,
+        selectedThreadId: selectedThreadId(),
+        transcriptText: document.querySelector("[data-testid='chat-transcript']")?.textContent?.trim(),
+        url: window.location.href
+      });
+
+      return await new Promise<{
+        expectedThreadId: string;
+        label: string;
+        ok: boolean;
+        reason?: string;
+        selectedThreadId?: string | null;
+        transcriptText?: string;
+        url?: string;
+      }>((resolve) => {
+        const startedAt = performance.now();
+        let observer: MutationObserver | undefined;
+        let interval: number | undefined;
+
+        const cleanup = () => {
+          observer?.disconnect();
+          if (interval !== undefined) {
+            window.clearInterval(interval);
+          }
+        };
+        const finish = (value: {
+          expectedThreadId: string;
+          label: string;
+          ok: boolean;
+          reason?: string;
+          selectedThreadId?: string | null;
+          transcriptText?: string;
+          url?: string;
+        }) => {
+          cleanup();
+          resolve(value);
+        };
+        const check = () => {
+          if (selectedThreadId() !== expectedThreadId) {
+            finish(snapshot("selected chat changed"));
+            return;
+          }
+          if (performance.now() - startedAt >= waitMs) {
+            finish({
+              ok: true,
+              label: checkLabel,
+              expectedThreadId,
+              selectedThreadId: selectedThreadId(),
+              transcriptText: document.querySelector("[data-testid='chat-transcript']")?.textContent?.trim(),
+              url: window.location.href
+            });
+          }
+        };
+
+        observer = new MutationObserver(check);
+        observer.observe(document.body, {
+          attributes: true,
+          attributeFilter: ["data-current-chat-id", "data-testid", "class", "style"],
+          childList: true,
+          subtree: true
+        });
+        interval = window.setInterval(check, 50);
+        check();
+      });
+    }, { durationMs, label, threadId });
+
+    if (!result.ok) {
+      throw new Error(`${label}: selected chat should stay on ${threadId}: ${JSON.stringify(result, null, 2)}`);
+    }
+  }
+
+  async expectTranscriptStaysScrolledToBottomFor(
+    label: string,
+    durationMs = 1_000,
+    options: { requireScrollable?: boolean; tolerancePx?: number } = {}
+  ): Promise<void> {
+    const result = await this.page.evaluate(async ({ durationMs: waitMs, label: checkLabel, requireScrollable, tolerancePx }) => {
+      const transcriptSelector = '[data-testid="chat-transcript"]';
+      const metrics = () => {
+        const transcript = document.querySelector(transcriptSelector) as HTMLElement | null;
+        if (!transcript) {
+          return undefined;
+        }
+        return {
+          clientHeight: transcript.clientHeight,
+          deltaFromBottom: transcript.scrollHeight - transcript.clientHeight - transcript.scrollTop,
+          scrollHeight: transcript.scrollHeight,
+          scrollTop: transcript.scrollTop
+        };
+      };
+      const snapshot = (reason: string) => ({
+        ok: false,
+        label: checkLabel,
+        reason,
+        metrics: metrics(),
+        transcriptText: document.querySelector(transcriptSelector)?.textContent?.trim(),
+        url: window.location.href
+      });
+
+      return await new Promise<{
+        label: string;
+        metrics?: {
+          clientHeight: number;
+          deltaFromBottom: number;
+          scrollHeight: number;
+          scrollTop: number;
+        };
+        ok: boolean;
+        reason?: string;
+        transcriptText?: string;
+        url?: string;
+      }>((resolve) => {
+        const startedAt = performance.now();
+        let observer: MutationObserver | undefined;
+        let interval: number | undefined;
+
+        const cleanup = () => {
+          observer?.disconnect();
+          if (interval !== undefined) {
+            window.clearInterval(interval);
+          }
+        };
+        const finish = (value: {
+          label: string;
+          metrics?: {
+            clientHeight: number;
+            deltaFromBottom: number;
+            scrollHeight: number;
+            scrollTop: number;
+          };
+          ok: boolean;
+          reason?: string;
+          transcriptText?: string;
+          url?: string;
+        }) => {
+          cleanup();
+          resolve(value);
+        };
+        const check = () => {
+          const current = metrics();
+          if (!current) {
+            finish(snapshot("chat transcript was not found"));
+            return;
+          }
+          if (requireScrollable && current.scrollHeight <= current.clientHeight) {
+            finish(snapshot("chat transcript was not scrollable"));
+            return;
+          }
+          if (current.deltaFromBottom > tolerancePx) {
+            finish(snapshot("chat transcript was not scrolled to bottom"));
+            return;
+          }
+          if (performance.now() - startedAt >= waitMs) {
+            finish({
+              ok: true,
+              label: checkLabel,
+              metrics: current,
+              transcriptText: document.querySelector(transcriptSelector)?.textContent?.trim(),
+              url: window.location.href
+            });
+          }
+        };
+
+        observer = new MutationObserver(check);
+        observer.observe(document.body, {
+          attributes: true,
+          attributeFilter: ["class", "data-testid", "style"],
+          characterData: true,
+          childList: true,
+          subtree: true
+        });
+        interval = window.setInterval(check, 50);
+        check();
+      });
+    }, {
+      durationMs,
+      label,
+      requireScrollable: options.requireScrollable ?? false,
+      tolerancePx: options.tolerancePx ?? 2
+    });
+
+    if (!result.ok) {
+      throw new Error(`${label}: transcript should stay scrolled to bottom: ${JSON.stringify(result, null, 2)}`);
+    }
+  }
+
+  async waitForTranscriptScrollable(timeoutMs = 10_000): Promise<void> {
+    await expect.poll(async () => this.page.getByTestId("chat-transcript").evaluate((transcript) => {
+      const element = transcript as HTMLElement;
+      return {
+        clientHeight: element.clientHeight,
+        isScrollable: element.scrollHeight > element.clientHeight,
+        scrollHeight: element.scrollHeight
+      };
+    }), {
+      message: "expected chat transcript to become scrollable",
+      timeout: timeoutMs
+    }).toMatchObject({ isScrollable: true });
+  }
+
+  async scrollTranscriptToBottom(): Promise<void> {
+    await this.page.getByTestId("chat-transcript").evaluate((transcript) => {
+      const element = transcript as HTMLElement;
+      element.scrollTop = element.scrollHeight;
+      element.dispatchEvent(new Event("scroll", { bubbles: true }));
+    });
+  }
+
+  async scrollTranscriptUp(distancePx = 600): Promise<void> {
+    await this.waitForTranscriptScrollable();
+    await this.page.getByTestId("chat-transcript").evaluate((transcript, distance) => {
+      const element = transcript as HTMLElement;
+      element.scrollTop = Math.max(0, element.scrollTop - distance);
+      element.dispatchEvent(new Event("scroll", { bubbles: true }));
+    }, distancePx);
+  }
+
+  async expectTranscriptStaysAwayFromBottomFor(
+    label: string,
+    durationMs = 1_000,
+    options: { minDistancePx?: number; requireScrollable?: boolean } = {}
+  ): Promise<void> {
+    const result = await this.page.evaluate(async ({ durationMs: waitMs, label: checkLabel, minDistancePx, requireScrollable }) => {
+      const transcriptSelector = '[data-testid="chat-transcript"]';
+      const metrics = () => {
+        const transcript = document.querySelector(transcriptSelector) as HTMLElement | null;
+        if (!transcript) {
+          return undefined;
+        }
+        return {
+          clientHeight: transcript.clientHeight,
+          deltaFromBottom: transcript.scrollHeight - transcript.clientHeight - transcript.scrollTop,
+          scrollHeight: transcript.scrollHeight,
+          scrollTop: transcript.scrollTop
+        };
+      };
+      const snapshot = (reason: string) => ({
+        ok: false,
+        label: checkLabel,
+        reason,
+        metrics: metrics(),
+        transcriptText: document.querySelector(transcriptSelector)?.textContent?.trim(),
+        url: window.location.href
+      });
+
+      return await new Promise<{
+        label: string;
+        metrics?: {
+          clientHeight: number;
+          deltaFromBottom: number;
+          scrollHeight: number;
+          scrollTop: number;
+        };
+        ok: boolean;
+        reason?: string;
+        transcriptText?: string;
+        url?: string;
+      }>((resolve) => {
+        const startedAt = performance.now();
+        let observer: MutationObserver | undefined;
+        let interval: number | undefined;
+
+        const cleanup = () => {
+          observer?.disconnect();
+          if (interval !== undefined) {
+            window.clearInterval(interval);
+          }
+        };
+        const finish = (value: {
+          label: string;
+          metrics?: {
+            clientHeight: number;
+            deltaFromBottom: number;
+            scrollHeight: number;
+            scrollTop: number;
+          };
+          ok: boolean;
+          reason?: string;
+          transcriptText?: string;
+          url?: string;
+        }) => {
+          cleanup();
+          resolve(value);
+        };
+        const check = () => {
+          const current = metrics();
+          if (!current) {
+            finish(snapshot("chat transcript was not found"));
+            return;
+          }
+          if (requireScrollable && current.scrollHeight <= current.clientHeight) {
+            finish(snapshot("chat transcript was not scrollable"));
+            return;
+          }
+          if (current.deltaFromBottom < minDistancePx) {
+            finish(snapshot("chat transcript jumped back to bottom"));
+            return;
+          }
+          if (performance.now() - startedAt >= waitMs) {
+            finish({
+              ok: true,
+              label: checkLabel,
+              metrics: current,
+              transcriptText: document.querySelector(transcriptSelector)?.textContent?.trim(),
+              url: window.location.href
+            });
+          }
+        };
+
+        observer = new MutationObserver(check);
+        observer.observe(document.body, {
+          attributes: true,
+          attributeFilter: ["class", "data-testid", "style"],
+          characterData: true,
+          childList: true,
+          subtree: true
+        });
+        interval = window.setInterval(check, 50);
+        check();
+      });
+    }, {
+      durationMs,
+      label,
+      minDistancePx: options.minDistancePx ?? 64,
+      requireScrollable: options.requireScrollable ?? false
+    });
+
+    if (!result.ok) {
+      throw new Error(`${label}: transcript should stay away from bottom: ${JSON.stringify(result, null, 2)}`);
     }
   }
 
@@ -836,7 +1345,6 @@ export class ClickAppPage {
   private async currentTranscriptStateSignature(): Promise<TranscriptStateSignature> {
     const transcript = this.page.getByTestId("chat-transcript");
     await expect(transcript).toBeVisible({ timeout: 30_000 });
-    await expect(transcript.locator('[data-local-markdown-link-state="registering"]')).toHaveCount(0, { timeout: 30_000 });
     return transcript.evaluate((root): TranscriptStateSignature => {
       const normalize = (value: string | null | undefined) => (value ?? "").replace(/\s+/g, " ").trim();
       const visibleText = (element: Element) => normalize(

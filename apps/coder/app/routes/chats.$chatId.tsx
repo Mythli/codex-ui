@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { CoderWorkspace } from "../CoderWorkspace";
-import { loadCoderInitialDataFn } from "../features/connection/api/server-fns";
+import { loadCoderInitialDataFn } from "@app/ssr/loadCoderInitialDataFn";
 
 export const Route = createFileRoute("/chats/$chatId")({
   loader: async ({ params }) => typeof window === "undefined"

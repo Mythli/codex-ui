@@ -1,4 +1,4 @@
-import type { CoderComposerAttachment } from "../../types";
+import type { CoderComposerAttachment } from "@coder/types";
 import { AttachmentChip } from "./AttachmentChip";
 import styles from "@app/common/pure/codex.module.css";
 

@@ -44,9 +44,9 @@ importers:
       '@tanstack/react-start':
         specifier: ^1.167.65
         version: 1.168.2(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vite@8.0.13(@types/node@25.8.0)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.47.1)(tsx@4.22.0))
-      '@taylordb/codex':
-        specifier: workspace:*
-        version: link:../../packages/codex
+      immer:
+        specifier: ^11.1.8
+        version: 11.1.8
       mdast-util-from-markdown:
         specifier: ^2.0.3
         version: 2.0.3
@@ -135,25 +135,6 @@ importers:
       vite:
         specifier: ^8.0.0
         version: 8.0.13(@types/node@25.8.0)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.47.1)(tsx@4.22.0)
-
-  packages/codex:
-    dependencies:
-      immer:
-        specifier: ^11.1.8
-        version: 11.1.8
-      socket.io:
-        specifier: ^4.8.3
-        version: 4.8.3
-      socket.io-client:
-        specifier: ^4.8.3
-        version: 4.8.3
-    devDependencies:
-      '@types/node':
-        specifier: ^25.0.1
-        version: 25.8.0
-      typescript:
-        specifier: ^6.0.2
-        version: 6.0.3
 
   packages/git-observer:
     dependencies:

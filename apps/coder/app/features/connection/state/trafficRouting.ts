@@ -1,5 +1,5 @@
-import { CodexTrafficPacket, codexCanonicalRequestId, type CodexProtocolTraffic } from "@taylordb/codex/protocol";
-import type { CoderThreadsState } from "../../conversation/types";
+import { CodexTrafficPacket, codexCanonicalRequestId, type CodexProtocolTraffic } from "@coder/protocol";
+import type { CoderThreadsState } from "@coder/types";
 
 export function targetThreadIdForTraffic(
   state: CoderThreadsState,

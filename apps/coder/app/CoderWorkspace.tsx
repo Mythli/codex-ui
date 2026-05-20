@@ -1,24 +1,30 @@
-import { useEffect, useRef, type MutableRefObject } from 'react'
-import type { CodexRenderBlock, CodexThreadIndexState } from '@taylordb/codex'
+import {
+  useEffect,
+  useRef,
+  useState
+} from 'react';
+import type { MutableRefObject } from 'react';
+import type { CodexRenderBlock } from "@coder/types";
+import type { CodexThreadIndexState } from "@coder/types";
 import { useCoderUIConfig } from './common/providers/CoderUIProvider'
 import {
   selectHydratingThreadIds,
   selectUnreadThreadIds,
-} from './features/conversation/state/chatListSelectors'
+} from './features/threads/state/threadListSelectors'
 import {
   selectActiveThread,
   selectIsRunning,
   selectSelectedThreadId,
   selectSelection,
   selectShouldLoadSelectedThread,
-} from './features/conversation/state/threadSelectors'
-import type { CoderSelection } from './features/navigation/types'
-import { useChatSelectionController } from './features/navigation/hooks/useChatSelectionController'
+} from './features/thread/state/threadSelectors'
+import type { CoderSelection } from '@coder/types'
+import { useChatSelectionController } from './features/threads/hooks/useChatSelectionController'
 import {
   selectActiveChat,
   selectCurrentProject,
-} from './features/navigation/state/workspaceSelectors'
-import { newDraftSelected, threadSelected } from './features/navigation/state/selectionSlice'
+} from './features/threads/state/workspaceSelectors'
+import { newDraftSelected, threadSelected } from './features/threads/state/threadSelectionSlice'
 import { useAppDispatch, useAppSelector } from './store/hooks'
 import {
   attachmentRemoved,
@@ -29,7 +35,7 @@ import {
   permissionModeSelected,
   reasoningEffortSelected,
 } from './features/composer/state/composerSlice'
-import { archiveThread, openThread } from './features/conversation/state/threadThunks'
+import { archiveThread, openThread } from './features/thread/state/threadThunks'
 import { submitPrompt } from './features/composer/state/turnThunks'
 import { CoderShell } from './features/workspace/components/Shell/CoderShell'
 
@@ -63,6 +69,7 @@ export function CoderWorkspace({
   const shouldLoadSelectedThread = useAppSelector(selectShouldLoadSelectedThread)
   const threadIndex = useAppSelector((state) => state.threadIndex)
   const unreadThreadIds = useAppSelector(selectUnreadThreadIds)
+  const [transcriptFollowSignal, setTranscriptFollowSignal] = useState(0)
   const models = composer.models
   const lastReadyPaneRef = useRef<
     { key: string; blocks: readonly CodexRenderBlock[] } | undefined
@@ -138,6 +145,7 @@ export function CoderWorkspace({
       onSelectModel={(model) => dispatch(modelSelected(model))}
       onSelectPermissionMode={(mode) => dispatch(permissionModeSelected(mode))}
       onSelectReasoningEffort={(effort) => dispatch(reasoningEffortSelected(effort))}
+      onBeforeSubmitPrompt={() => setTranscriptFollowSignal((current) => current + 1)}
       onSubmitPrompt={submitPromptFromSelection}
       previewUrl={previewUrl ?? undefined}
       prompt={composer.prompt}
@@ -151,6 +159,7 @@ export function CoderWorkspace({
       threadIndex={threadIndex}
       threadIndexError={threadIndex.error}
       tokenUsage={composer.tokenUsage}
+      transcriptFollowSignal={transcriptFollowSignal}
       unreadThreadIds={unreadThreadIds}
     />
   )

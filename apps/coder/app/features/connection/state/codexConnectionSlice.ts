@@ -1,7 +1,7 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
-import type { CodexProtocolTraffic } from "@taylordb/codex/protocol";
+import type { CodexProtocolTraffic } from "@coder/types";
 import { codexTrafficReceived } from "./codexTrafficActions";
-import type { CoderConnectionState } from "../types";
+import type { CoderConnectionState } from "@coder/types";
 
 const MAX_DIAGNOSTICS = 50;
 

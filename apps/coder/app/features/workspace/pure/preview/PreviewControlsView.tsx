@@ -1,6 +1,6 @@
 import { FiExternalLink, FiMonitor, FiRefreshCw, FiSmartphone, FiTablet } from "react-icons/fi";
 import { IconButton, UrlBar } from "@app/common/pure";
-import type { PreviewViewport } from "../../types";
+import type { PreviewViewport } from "@coder/types";
 import styles from "@app/common/pure/codex.module.css";
 
 const viewportIcons = {

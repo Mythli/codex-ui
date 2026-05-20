@@ -4,10 +4,10 @@ import {
   type ThunkAction,
   type UnknownAction
 } from "@reduxjs/toolkit";
-import { CodexTrafficPacket } from "@taylordb/codex/protocol";
-import { codexTrafficReceived } from "../features/connection/state/codexTrafficActions";
-import { threadUnreadCleared, threadUnreadMarked } from "../features/conversation/state/chatListMetaSlice";
-import { threadSelected } from "../features/navigation/state/selectionSlice";
+import { CodexTrafficPacket } from "@coder/protocol";
+import { codexTrafficReceived } from "@app/features/connection/state/codexTrafficActions";
+import { threadUnreadCleared, threadUnreadMarked } from "../features/threads/state/threadListMetaSlice";
+import { threadSelected } from "../features/threads/state/threadSelectionSlice";
 import { rootReducer } from "./rootReducer";
 
 const listenerMiddleware = createListenerMiddleware();

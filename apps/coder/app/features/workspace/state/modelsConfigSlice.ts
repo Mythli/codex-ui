@@ -1,7 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
-import type { CodexProtocolTraffic } from "@taylordb/codex/protocol";
+import type { CodexProtocolTraffic } from "@coder/types";
 import { codexTrafficReceived } from "../../connection/state/codexTrafficActions";
-import type { CoderModelsConfigState } from "../types";
+import type { CoderModelsConfigState } from "@coder/types";
 
 const initialState: CoderModelsConfigState = {
   modelsStatus: "idle",

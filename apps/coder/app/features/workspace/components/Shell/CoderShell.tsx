@@ -1,23 +1,30 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { Group, Panel, Separator } from 'react-resizable-panels'
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState
+} from 'react';
+import { Group,
+  Panel,
+  Separator } from 'react-resizable-panels'
 import { FiMenu } from 'react-icons/fi'
 import { Button } from '@app/common/pure'
 import type { MarkdownComponents } from '@app/common/pure'
 import type {
-  CodexProjectIndexItem,
   CodexRenderBlock,
-  CodexThreadIndexState,
   CodexThreadState,
-  CodexThreadTokenUsage,
-} from '@taylordb/codex'
-import type { CodexAppServerModel } from '@taylordb/codex/protocol'
+  CodexThreadTokenUsage
+} from "@coder/types";
+import type { CodexProjectIndexItem } from "@coder/types";
+import type { CodexThreadIndexState } from "@coder/types";
+import type { CodexAppServerModel } from '@coder/types'
 import type {
   CoderComposerAttachment,
   CoderPermissionMode,
   CoderReasoningEffort,
-} from '../../../composer/types'
-import { ChatSwitcher } from '../../../navigation/components/ChatSwitcher/ChatSwitcher'
-import type { CoderShellViewMode, PreviewViewport } from '../../types'
+} from '@coder/types'
+import { ChatSwitcher } from '@app/features/threads/components/ChatSwitcher/ChatSwitcher'
+import type { CoderShellViewMode, PreviewViewport } from '@coder/types'
 import { PreviewPanel } from '../PreviewFrame/PreviewPanel'
 import { CoderSidebar } from '../Sidebar/CoderSidebar'
 import styles from './CoderShell.module.css'
@@ -59,6 +66,7 @@ export function CoderShell({
   selectedReasoningEffort,
   threadIndex,
   threadIndexError,
+  transcriptFollowSignal,
   tokenUsage,
   transcriptNowMs,
   unreadThreadIds,
@@ -97,6 +105,7 @@ export function CoderShell({
   selectedReasoningEffort: CoderReasoningEffort
   threadIndex: CodexThreadIndexState
   threadIndexError?: string
+  transcriptFollowSignal?: number
   tokenUsage?: CodexThreadTokenUsage
   transcriptNowMs?: number
   unreadThreadIds: readonly string[]
@@ -200,6 +209,7 @@ export function CoderShell({
       selectedModel={selectedModel}
       selectedReasoningEffort={selectedReasoningEffort}
       threadIndexError={threadIndexError}
+      transcriptFollowSignal={transcriptFollowSignal}
       tokenUsage={tokenUsage}
       transcriptNowMs={transcriptNowMs}
     />

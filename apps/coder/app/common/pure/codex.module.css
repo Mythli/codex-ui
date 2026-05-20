@@ -1,3 +1,4 @@
+/* Shared row styles used by list and sidebar entries. */
 .row {
   align-items: center;
   background: transparent;
@@ -349,6 +350,30 @@
 
 .fileRow[open] > summary::after {
   content: "⌃";
+}
+
+.fileCardMore {
+  align-items: center;
+  background: var(--coder-surface-muted);
+  border: 0;
+  color: var(--coder-muted);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  min-height: 40px;
+  padding: 0 14px;
+  text-align: left;
+  width: 100%;
+}
+
+.fileCardMore:hover {
+  background: color-mix(in srgb, var(--coder-surface-muted) 82%, var(--coder-bg));
+  color: var(--coder-text);
+}
+
+.fileCardMore:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--coder-accent) 72%, transparent);
+  outline-offset: -2px;
 }
 
 .fileDiffDrawer {

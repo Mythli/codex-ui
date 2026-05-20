@@ -1,18 +1,19 @@
-import { Spinner, type MarkdownComponents } from "@app/common/pure";
+import { Spinner } from "@app/common/pure";
+import type { MarkdownComponents } from "@app/common/pure";
 import type {
-  CodexProjectIndexItem,
   CodexRenderBlock,
   CodexThreadState,
   CodexThreadTokenUsage
-} from "@taylordb/codex";
-import type { CodexAppServerModel } from "@taylordb/codex/protocol";
+} from "@coder/types";
+import type { CodexProjectIndexItem } from "@coder/types";
+import type { CodexAppServerModel } from "@coder/types";
 import type {
   CoderComposerAttachment,
   CoderPermissionMode,
   CoderReasoningEffort
-} from "../../../composer/types";
+} from "@coder/types";
 import { Composer } from "../../../composer/components/Composer/Composer";
-import { CodexChatView } from "../../../conversation/components/Transcript/CodexChatView";
+import { CodexChatView } from "@app/features/thread/components/Transcript/CodexChatView";
 import { PromptHome } from "../PromptHome/PromptHome";
 import { SidebarHeader } from "./SidebarHeader";
 import styles from "./CoderSidebar.module.css";
@@ -46,6 +47,7 @@ export function CoderSidebar({
   selectedModel,
   selectedReasoningEffort,
   threadIndexError,
+  transcriptFollowSignal,
   tokenUsage,
   transcriptNowMs,
 }: {
@@ -77,6 +79,7 @@ export function CoderSidebar({
   selectedModel: string;
   selectedReasoningEffort: CoderReasoningEffort;
   threadIndexError?: string;
+  transcriptFollowSignal?: number;
   tokenUsage?: CodexThreadTokenUsage;
   transcriptNowMs?: number;
 }) {
@@ -104,6 +107,7 @@ export function CoderSidebar({
         selectedChatId={selectedChatId}
         selectedDraftId={selectedDraftId}
         threadIndexError={threadIndexError}
+        transcriptFollowSignal={transcriptFollowSignal}
         transcriptNowMs={transcriptNowMs}
       />
       <Composer
@@ -139,6 +143,7 @@ function ChatPane({
   selectedChatId,
   selectedDraftId,
   threadIndexError,
+  transcriptFollowSignal,
   transcriptNowMs
 }: {
   activeThread?: CodexThreadState;
@@ -151,6 +156,7 @@ function ChatPane({
   selectedChatId?: string;
   selectedDraftId?: string;
   threadIndexError?: string;
+  transcriptFollowSignal?: number;
   transcriptNowMs?: number;
 }) {
   if (threadIndexError) {
@@ -161,7 +167,14 @@ function ChatPane({
     );
   }
   if (renderBlocks.length > 0) {
-    return <CodexChatView blocks={renderBlocks} markdownComponents={markdownComponents} nowMs={transcriptNowMs} />;
+    return (
+      <CodexChatView
+        blocks={renderBlocks}
+        markdownComponents={markdownComponents}
+        nowMs={transcriptNowMs}
+        followBottomSignal={transcriptFollowSignal}
+      />
+    );
   }
   if (activeThread?.status === "failed") {
     return (

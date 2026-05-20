@@ -10,12 +10,25 @@
     "noEmit": true,
     "types": ["node"],
     "paths": {
-      "@taylordb/codex/browser": ["../../packages/codex/src/browser.ts"],
-      "@taylordb/codex/server": ["../../packages/codex/src/server.ts"],
-      "@taylordb/codex/protocol": ["../../packages/codex/src/protocol.ts"],
-      "@taylordb/codex": ["../../packages/codex/src/index.ts"],
-      "@app/*": ["./app/*"]
+      "@app/*": ["./app/*"],
+      "@coder/client": ["./client/index.ts"],
+      "@coder/defaults": ["./defaults.ts"],
+      "@coder/protocol": ["./protocol/index.ts"],
+      "@coder/types": ["./types/index.ts"]
     }
   },
-  "include": ["app/**/*.ts", "app/**/*.tsx", "api/**/*.ts", "e2e/**/*.ts"]
+  "include": [
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "assets/**/*.ts",
+    "backend/**/*.ts",
+    "client/**/*.ts",
+    "e2e/**/*.ts",
+    "middlewares/**/*.ts",
+    "protocol/**/*.ts",
+    "types/**/*.ts",
+    "*.ts",
+    ".storybook/**/*.ts",
+    ".storybook/**/*.tsx"
+  ]
 }

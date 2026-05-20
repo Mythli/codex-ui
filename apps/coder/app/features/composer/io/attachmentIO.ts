@@ -1,4 +1,4 @@
-import type { CoderComposerAttachment } from "../types";
+import type { CoderComposerAttachment } from "@coder/types";
 
 const maxAttachmentBytes = 20 * 1024 * 1024;
 

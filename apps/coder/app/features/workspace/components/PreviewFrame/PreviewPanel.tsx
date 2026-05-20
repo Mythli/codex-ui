@@ -1,4 +1,4 @@
-import type { PreviewViewport } from '../../types'
+import type { PreviewViewport } from '@coder/types'
 import styles from '../Shell/CoderShell.module.css'
 import { PreviewControls } from '../TopBar/PreviewControls'
 import { PreviewFrame } from './PreviewFrame'

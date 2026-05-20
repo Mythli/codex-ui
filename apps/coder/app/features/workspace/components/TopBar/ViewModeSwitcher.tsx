@@ -1,6 +1,6 @@
 import { FiColumns, FiMessageSquare, FiMonitor } from "react-icons/fi";
 import { SegmentedControl } from "@app/common/pure";
-import type { CoderShellViewMode } from "../../types";
+import type { CoderShellViewMode } from "@coder/types";
 
 const modes = [
   { id: "chat", label: "Chat only", icon: <FiMessageSquare aria-hidden="true" /> },

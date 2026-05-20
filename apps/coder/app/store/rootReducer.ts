@@ -1,10 +1,10 @@
 import { combineReducers } from "@reduxjs/toolkit";
 import { composerReducer } from "../features/composer/state/composerSlice";
-import { codexConnectionReducer } from "../features/connection/state/codexConnectionSlice";
-import { chatListMetaReducer } from "../features/conversation/state/chatListMetaSlice";
-import { threadIndexReducer } from "../features/conversation/state/threadIndexSlice";
-import { threadsReducer } from "../features/conversation/state/threadsSlice";
-import { selectionReducer } from "../features/navigation/state/selectionSlice";
+import { codexConnectionReducer } from "@app/features/connection/state/codexConnectionSlice";
+import { chatListMetaReducer } from "../features/threads/state/threadListMetaSlice";
+import { threadIndexReducer } from "../features/threads/state/threadIndexSlice";
+import { threadsReducer } from "../features/thread/state/loadedThreadsSlice";
+import { selectionReducer } from "../features/threads/state/threadSelectionSlice";
 import { modelsConfigReducer } from "../features/workspace/state/modelsConfigSlice";
 
 export const rootReducer = combineReducers({

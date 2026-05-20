@@ -1,7 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { CoderWorkspace } from "../CoderWorkspace";
-import { loadCoderInitialDataFn } from "../features/connection/api/server-fns";
-import type { CoderInitialData } from "../features/conversation/state/initialData";
+import { loadCoderInitialDataFn } from "@app/ssr/loadCoderInitialDataFn";
+import type { CoderInitialData } from "@coder/types";
 
 export const Route = createFileRoute("/")({
   loader: async ({ location }) => {

@@ -1,7 +1,10 @@
-import { FiEdit3, FiMenu } from "react-icons/fi";
-import type { CodexProjectIndexItem } from "@taylordb/codex";
+import {
+  FiEdit3,
+  FiMenu
+} from "react-icons/fi";
+import type { CodexProjectIndexItem } from "@coder/types";
 import { Button } from "@app/common/pure";
-import { ProjectPicker } from "../../../navigation/components/ProjectPicker/ProjectPicker";
+import { ProjectPicker } from "@app/features/threads/components/ProjectPicker/ProjectPicker";
 import styles from "./SidebarHeader.module.css";
 
 export function SidebarHeader({

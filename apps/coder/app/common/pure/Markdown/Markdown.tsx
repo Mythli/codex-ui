@@ -1,33 +1,28 @@
 import type { ComponentProps } from "react";
-import ReactMarkdown, { defaultUrlTransform, type Components, type UrlTransform } from "react-markdown";
+import ReactMarkdown, { type Components } from "react-markdown";
 import styles from "./Markdown.module.css";
 
 export type MarkdownComponents = Components;
-export type MarkdownUrlTransform = UrlTransform;
 
 const defaultComponents: MarkdownComponents = {
   a: DefaultMarkdownLink
 };
 
+// Keep anchor behavior explicit for safer markdown links.
 export function Markdown({
   components,
-  text,
-  urlTransform
+  text
 }: {
   components?: MarkdownComponents;
   text: string;
-  urlTransform?: MarkdownUrlTransform;
 }) {
-  const transform: MarkdownUrlTransform = urlTransform
-    ? (url, key, node) => urlTransform(url, key, node) ?? defaultUrlTransform(url)
-    : defaultUrlTransform;
   const resolvedComponents = components?.a
     ? components
     : { ...defaultComponents, ...components };
 
   return (
     <div className={styles.markdown}>
-      <ReactMarkdown components={resolvedComponents} urlTransform={transform}>{text}</ReactMarkdown>
+      <ReactMarkdown components={resolvedComponents}>{text}</ReactMarkdown>
     </div>
   );
 }

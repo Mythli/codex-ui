@@ -4,15 +4,18 @@ import {
   FiPlus
 } from "react-icons/fi";
 import { useHotkeys } from "react-hotkeys-hook";
-import { useRef, useState, type ClipboardEvent, type DragEvent } from "react";
+import { useRef,
+  useState,
+  ClipboardEvent,
+  DragEvent } from "react";
 import { IconButton } from "@app/common/pure";
-import type { CodexThreadTokenUsage } from "@taylordb/codex";
-import type { CodexAppServerModel } from "@taylordb/codex/protocol";
+import type { CodexThreadTokenUsage } from "@coder/types";
+import type { CodexAppServerModel } from "@coder/types";
 import type {
   CoderComposerAttachment,
   CoderPermissionMode,
   CoderReasoningEffort
-} from "../../types";
+} from "@coder/types";
 import { AttachmentTray } from "./AttachmentTray";
 import {
   ContextUsagePopover,
@@ -83,16 +86,21 @@ export function CodexChatBox({
     ? selectedModelItem.supportedReasoningEfforts.map((option) => option.reasoningEffort)
     : ["low", "medium", "high", "xhigh"] satisfies CoderReasoningEffort[];
   const reasoningLabel = getDisplayReasoningLabel(selectedReasoningEffort);
+  const handleSubmit = () => {
+    if (!canSubmit) {
+      return;
+    }
+    onBeforeSubmit?.();
+    onSubmit?.();
+  };
 
   useHotkeys("mod+enter", (event) => {
     event.preventDefault();
-    if (canSubmit) {
-      onSubmit?.();
-    }
+    handleSubmit();
   }, {
     enableOnFormTags: ["TEXTAREA"],
     enabled: canSubmit
-  }, [canSubmit, onSubmit]);
+  }, [canSubmit, handleSubmit]);
 
   const handleAttachClick = () => {
     onAttachClick?.();
@@ -210,7 +218,6 @@ export function CodexChatBox({
           />
         </div>
         <div className={styles.rightActions}>
-          {isRunning ? <span className={styles.runningDot} aria-label="Codex is working" data-testid="composer-running-indicator" /> : null}
           <ContextUsagePopover tokenUsage={tokenUsage} />
           <ModelPopover
             modelLabel={modelLabel}
@@ -233,8 +240,7 @@ export function CodexChatBox({
             data-testid="send-prompt-button"
             disabled={!canSubmit}
             label="Send message"
-            onClick={onSubmit}
-            onPointerDown={canSubmit ? onBeforeSubmit : undefined}
+            onClick={handleSubmit}
             variant="primary"
           >
             <FiArrowUp aria-hidden="true" />

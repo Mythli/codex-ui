@@ -1,22 +1,22 @@
-import {
-  type CodexAppServerUserInput,
-  type CodexRequestParams
-} from "@taylordb/codex/protocol";
-import { parseCodexProtocolRequestTraffic } from "@taylordb/codex/protocol";
-import { parseCodexMessageInput } from "@taylordb/codex";
-import { requestCodex } from "../../connection/api/codexClient";
-import { DEFAULT_CODEX_CWD } from "../../connection/api/codexTransport";
+import { parseCodexProtocolRequestTraffic } from "@coder/protocol";
+import type {
+  CodexProtocolMetadata,
+  CodexAppServerUserInput,
+  CodexRequestParams
+} from "@coder/types";
+import { parseCodexMessageInput } from "@app/features/composer/state/messageInput";
+import { requestCodex } from "@coder/client";
+import { DEFAULT_CODEX_CWD } from "@coder/client";
 import {
   permissionModeToRequestOverrides
 } from "./composerState";
-import type { CoderComposerAttachment } from "../types";
+import type { CoderComposerAttachment } from "@coder/types";
 import type { AppThunk } from "../../../store/configureStore";
 import { attachmentsCleared, composerPromptCleared } from "./composerSlice";
-import { threadUnreadCleared } from "../../conversation/state/chatListMetaSlice";
-import { createProvisionalThread } from "../../conversation/state/threadsSlice";
 import { codexTrafficReceived } from "../../connection/state/codexTrafficActions";
-import { threadSelected } from "../../navigation/state/selectionSlice";
-import type { CoderSubmitPromptResult } from "../types";
+import { threadUnreadCleared } from "@app/features/threads/state/threadListMetaSlice";
+import { createProvisionalThread, promoteProvisionalThread } from "@app/features/thread/state/loadedThreadsSlice";
+import type { CoderSubmitPromptResult } from "@coder/types";
 
 type MessageInput = string | CodexAppServerUserInput[];
 let provisionalThreadSequence = 0;
@@ -48,7 +48,7 @@ export function submitPrompt(): AppThunk<Promise<CoderSubmitPromptResult>> {
       const provisionalThreadId = `local-thread:${++provisionalThreadSequence}`;
       const provisionalRequestId = `client:turn:provisional:${provisionalThreadSequence}`;
       dispatch(createProvisionalThread({ threadId: provisionalThreadId, cwd }));
-      dispatch(codexTrafficReceived(parseCodexProtocolRequestTraffic("turn/start", turnStartParams({
+      const provisionalTurnParams = turnStartParams({
         approvalPolicy,
         cwd,
         input,
@@ -56,15 +56,12 @@ export function submitPrompt(): AppThunk<Promise<CoderSubmitPromptResult>> {
         reasoningEffort: composer.selectedReasoningEffort,
         sandbox,
         threadId: provisionalThreadId
-      }), {
-        id: provisionalRequestId,
-        metadata: {
-          clientRequestId: provisionalRequestId,
-          targetThreadId: provisionalThreadId,
-          provisionalThreadId
-        },
-        timestampMs: Date.now()
-      })));
+      });
+      dispatchOptimisticTurnStart(dispatch, provisionalTurnParams, {
+        clientRequestId: provisionalRequestId,
+        provisionalThreadId
+      });
+      dispatch(attachmentsCleared());
       const startResponse = await requestCodex(dispatch, "thread/start", {
         cwd,
         model: composer.selectedModel,
@@ -75,6 +72,7 @@ export function submitPrompt(): AppThunk<Promise<CoderSubmitPromptResult>> {
         persistExtendedHistory: true
       }, { prefix: "thread-start" });
       const threadId = startResponse.thread.id;
+      dispatch(promoteProvisionalThread({ provisionalThreadId, threadId }));
       const turnRequest = requestCodex(dispatch, "turn/start", turnStartParams({
         approvalPolicy,
         cwd,
@@ -83,9 +81,15 @@ export function submitPrompt(): AppThunk<Promise<CoderSubmitPromptResult>> {
         reasoningEffort: composer.selectedReasoningEffort,
         sandbox,
         threadId
-      }), { targetThreadId: threadId, prefix: "turn" });
-      dispatch(threadSelected({ threadId, projectId: cwd }));
-      dispatch(attachmentsCleared());
+      }), {
+        metadata: {
+          clientRequestId: provisionalRequestId,
+          provisionalThreadId
+        },
+        alreadyDispatched: true,
+        targetThreadId: threadId,
+        prefix: "turn"
+      });
       void turnRequest.catch(() => undefined);
       return { createdThreadId: threadId };
     }
@@ -107,15 +111,13 @@ export function submitPrompt(): AppThunk<Promise<CoderSubmitPromptResult>> {
     });
     const optimisticRequestId = `client:turn:optimistic:${++optimisticTurnSequence}`;
     dispatch(threadUnreadCleared(selection.threadId));
-    dispatch(codexTrafficReceived(parseCodexProtocolRequestTraffic("turn/start", existingTurnParams, {
-      id: optimisticRequestId,
-      metadata: {
-        clientRequestId: optimisticRequestId,
-        targetThreadId: selection.threadId
-      },
-      timestampMs: Date.now()
-    })));
-    await requestCodex(dispatch, "thread/resume", {
+    dispatchOptimisticTurnStart(dispatch, existingTurnParams, {
+      clientRequestId: optimisticRequestId,
+      targetThreadId: selection.threadId
+    });
+    dispatch(attachmentsCleared());
+    void (async () => {
+      await requestCodex(dispatch, "thread/resume", {
       threadId: selection.threadId,
       cwd,
       model: composer.selectedModel,
@@ -123,16 +125,28 @@ export function submitPrompt(): AppThunk<Promise<CoderSubmitPromptResult>> {
       approvalPolicy,
       sandbox,
       persistExtendedHistory: true
-    }, { targetThreadId: selection.threadId, prefix: "thread-resume" }).catch(() => undefined);
-    await requestCodex(dispatch, "turn/start", existingTurnParams, {
-      alreadyDispatched: true,
+      }, { targetThreadId: selection.threadId, prefix: "thread-resume" }).catch(() => undefined);
+      await requestCodex(dispatch, "turn/start", existingTurnParams, {
+        alreadyDispatched: true,
       metadata: { clientRequestId: optimisticRequestId },
       targetThreadId: selection.threadId,
       prefix: "turn"
-    });
-    dispatch(attachmentsCleared());
+      });
+    })().catch(() => undefined);
     return undefined;
   };
+}
+
+function dispatchOptimisticTurnStart(
+  dispatch: (action: ReturnType<typeof codexTrafficReceived>) => unknown,
+  params: CodexRequestParams<"turn/start">,
+  metadata: CodexProtocolMetadata
+): void {
+  dispatch(codexTrafficReceived(parseCodexProtocolRequestTraffic("turn/start", params, {
+    id: metadata.clientRequestId ?? `client:turn:optimistic:${++optimisticTurnSequence}`,
+    metadata,
+    timestampMs: Date.now()
+  })));
 }
 
 function promptInput(message: string, attachments: readonly CoderComposerAttachment[]): MessageInput {

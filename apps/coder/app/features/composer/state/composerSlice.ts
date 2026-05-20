@@ -1,9 +1,10 @@
-import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
-import type { CodexThreadState } from "@taylordb/codex";
+import { createSlice } from "@reduxjs/toolkit";
+import type { PayloadAction } from "@reduxjs/toolkit";
+import type { CodexThreadState } from "@coder/types";
 import type {
   CodexAppServerConfig,
   CodexAppServerModel
-} from "@taylordb/codex/protocol";
+} from "@coder/types";
 import {
   coderComposerReducer,
   createInitialCoderComposerState
@@ -13,7 +14,7 @@ import type {
   CoderComposerState,
   CoderPermissionMode,
   CoderReasoningEffort
-} from "../types";
+} from "@coder/types";
 
 const composerSlice = createSlice({
   name: "composer",

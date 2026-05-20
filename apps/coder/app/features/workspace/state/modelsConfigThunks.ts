@@ -1,6 +1,6 @@
 import { composerConfigHydrated, composerModelsHydrated } from "../../composer/state/composerSlice";
-import { requestCodex } from "../../connection/api/codexClient";
-import { DEFAULT_CODEX_CWD } from "../../connection/api/codexTransport";
+import { requestCodex } from "@coder/client";
+import { DEFAULT_CODEX_CWD } from "@coder/client";
 import type { AppThunk } from "../../../store/configureStore";
 
 export function loadModels(): AppThunk<Promise<void>> {

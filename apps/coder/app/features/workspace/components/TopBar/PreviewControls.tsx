@@ -7,7 +7,7 @@ import {
   FiTablet,
 } from 'react-icons/fi'
 import { IconButton, MenuItem, MenuList, Popover, UrlBar } from '@app/common/pure'
-import type { PreviewViewport } from '../../types'
+import type { PreviewViewport } from '@coder/types'
 import styles from './PreviewControls.module.css'
 
 const viewports = [

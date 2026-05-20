@@ -33,7 +33,7 @@ const playwrightEnv = {
 if (passthroughArgs.length > 0) {
   exitCode = await runPlaywright(passthroughArgs, playwrightEnv);
 } else {
-  for (const suite of ["ssr-initial-hydration.spec.ts", "live-chat-activity.spec.ts", "work-timeline.spec.ts", "sidebar-status.spec.ts", "latest-threads.spec.ts"]) {
+  for (const suite of ["asset-markdown.spec.ts", "ssr-initial-hydration.spec.ts", "live-chat-activity.spec.ts", "work-timeline.spec.ts", "sidebar-status.spec.ts", "latest-threads.spec.ts"]) {
     exitCode = await runPlaywright([suite], playwrightEnv);
     if (exitCode !== 0) {
       break;

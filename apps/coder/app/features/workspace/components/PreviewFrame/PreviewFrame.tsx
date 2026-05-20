@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import type { PreviewViewport } from "../../types";
+import type { PreviewViewport } from "@coder/types";
 import styles from "./PreviewFrame.module.css";
 
 const viewportWidths: Record<PreviewViewport, string> = {

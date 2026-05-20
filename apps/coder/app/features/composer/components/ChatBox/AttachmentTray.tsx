@@ -1,6 +1,6 @@
 import { FiX } from "react-icons/fi";
 import { FileTypeIcon } from "@app/common/pure";
-import type { CoderComposerAttachment } from "../../types";
+import type { CoderComposerAttachment } from "@coder/types";
 import { formatAttachmentSize } from "../../io/attachmentIO";
 import styles from "./CodexChatBox.module.css";
 
@@ -16,11 +16,12 @@ export function AttachmentTray({
   if (attachments.length === 0 && !attachmentError) {
     return null;
   }
+  // Empty-state is intentionally omitted so selected attachments only render when present.
 
   return (
-    <div className={styles.attachmentTray} data-testid="composer-attachments">
+    <div aria-label="Selected attachments" className={styles.attachmentTray} data-testid="composer-attachments">
       {attachments.map((attachment) => (
-        <div className={styles.attachmentChip} key={attachment.id}>
+        <div className={styles.attachmentChip} data-testid="composer-attachment" key={attachment.id}>
           {attachment.kind === "image" && attachment.dataUrl ? (
             <img alt="" className={styles.attachmentThumb} src={attachment.dataUrl} />
           ) : (
@@ -40,7 +41,7 @@ export function AttachmentTray({
           </button>
         </div>
       ))}
-      {attachmentError ? <p className={styles.attachmentError}>{attachmentError}</p> : null}
+      {attachmentError ? <p className={styles.attachmentError} data-testid="composer-attachment-error">{attachmentError}</p> : null}
     </div>
   );
 }

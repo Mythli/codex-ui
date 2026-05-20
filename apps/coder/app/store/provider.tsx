@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Provider } from "react-redux";
-import type { CoderInitialData } from "../features/conversation/state/initialData";
-import { getCodexTransportController } from "../features/connection/api/codexTransport";
-import { codexTrafficReceived } from "../features/connection/state/codexTrafficActions";
-import { refreshThreadIndex } from "../features/conversation/state/threadThunks";
-import { hydrateCoderInitialData } from "../features/conversation/state/hydrateInitialData";
+import type { CoderInitialData } from "@coder/types";
+import { getCodexTransportController } from "@coder/client";
+import { codexTrafficReceived } from "@app/features/connection/state/codexTrafficActions";
+import { refreshThreadIndex } from "../features/thread/state/threadThunks";
+import { hydrateCoderInitialData } from "../features/threads/hydrateInitialData";
 import { loadConfig, loadModels } from "../features/workspace/state/modelsConfigThunks";
 import type { AppStore } from "./configureStore";
 import { createCoderStoreFromInitialData } from "./initialState";
@@ -14,7 +14,7 @@ import {
   codexSocketConnecting,
   codexSocketDisconnected,
   codexSocketFailed
-} from "../features/connection/state/codexConnectionSlice";
+} from "@app/features/connection/state/codexConnectionSlice";
 
 export function CoderReduxProvider({
   children,

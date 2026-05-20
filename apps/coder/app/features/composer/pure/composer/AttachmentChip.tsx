@@ -1,7 +1,7 @@
 import { FiX } from "react-icons/fi";
-import type { CodexTranscriptAttachment } from "@taylordb/codex";
+import type { CodexTranscriptAttachment } from "@coder/types";
 import { FileTypeIcon } from "@app/common/pure/FileTypeIcon";
-import type { CoderComposerAttachment } from "../../types";
+import type { CoderComposerAttachment } from "@coder/types";
 import { formatAttachmentSize } from "../../io/attachmentIO";
 import styles from "@app/common/pure/codex.module.css";
 

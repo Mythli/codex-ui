@@ -1,4 +1,4 @@
-import type { CoderShellViewMode } from "../../types";
+import type { CoderShellViewMode } from "@coder/types";
 import styles from "@app/common/pure/codex.module.css";
 
 export function ViewModeSwitcherView({

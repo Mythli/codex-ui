@@ -1,7 +1,0 @@
-{
-  "extends": "../tsconfig/trpc-library.json",
-  "compilerOptions": {
-    "noEmit": true
-  },
-  "include": ["src/**/*.ts"]
-}

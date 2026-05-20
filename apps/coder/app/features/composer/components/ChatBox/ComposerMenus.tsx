@@ -1,12 +1,17 @@
-import type { CSSProperties } from "react";
-import { FiChevronDown, FiShield, FiZap } from "react-icons/fi";
-import { MenuItem, MenuList, Popover } from "@app/common/pure";
-import type { CodexThreadTokenUsage } from "@taylordb/codex";
-import type { CodexAppServerModel } from "@taylordb/codex/protocol";
+import type {
+  CSSProperties } from "react";
+import { FiChevronDown,
+  FiShield,
+  FiZap } from "react-icons/fi";
+import { MenuItem,
+  MenuList,
+  Popover } from "@app/common/pure";
+import type { CodexThreadTokenUsage } from "@coder/types";
+import type { CodexAppServerModel } from "@coder/types";
 import type {
   CoderPermissionMode,
   CoderReasoningEffort
-} from "../../types";
+} from "@coder/types";
 import styles from "./CodexChatBox.module.css";
 
 export function permissionModeLabel(mode: CoderPermissionMode) {

@@ -9,22 +9,20 @@ The goal is one browser connection manager with separate logical namespaces:
 /git    Git observer RPC, actions, notifications, diagnostics
 ```
 
-Socket.IO handles the namespace multiplexing. The Codex and Git libraries should still stay separate.
+Socket.IO handles the namespace multiplexing. Codex transport code now lives in the Coder connection feature, while Git observer remains a separate package.
 
 ## Client Shape
 
 ```ts
 import { io, Manager } from "socket.io-client";
-import { CodexClient } from "@taylordb/codex/browser";
+import { createCodexSocketIoTransport } from "../../apps/coder/app/features/connection/api/CodexSocketIoTransport";
 import { GitClient } from "@taylordb/git-observer/browser";
 
 const manager = new Manager("/", {
   path: "/app-socket"
 });
 
-const codex = new CodexClient({
-  transport: createCodexSocketIoTransport(manager.socket("/codex"))
-});
+const codexTransport = createCodexSocketIoTransport(manager.socket("/codex"));
 
 const git = new GitClient({
   transport: createGitSocketIoTransport(manager.socket("/git"))

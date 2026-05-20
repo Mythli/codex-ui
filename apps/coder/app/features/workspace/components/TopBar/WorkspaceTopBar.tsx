@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import type { CodexProjectIndexItem } from "@taylordb/codex";
-import type { CoderShellViewMode } from "../../types";
+import type { CodexProjectIndexItem } from "@coder/types";
+import type { CoderShellViewMode } from "@coder/types";
 import styles from "./WorkspaceTopBar.module.css";
 
 export function WorkspaceTopBar({

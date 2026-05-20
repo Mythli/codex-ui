@@ -1,9 +1,9 @@
 import { createRootRoute, HeadContent, Outlet, Scripts, useMatches } from "@tanstack/react-router";
 import { useState } from "react";
-import { createQueryClient } from "../core/queryClient";
+import { createQueryClient } from "../queryClient";
 import { CoderUIProvider } from "../common/providers/CoderUIProvider";
 import { CoderReduxProvider } from "../store/provider";
-import type { CoderInitialData } from "../features/conversation/state/initialData";
+import type { CoderInitialData } from "@coder/types";
 import "../theme.css";
 
 export const Route = createRootRoute({

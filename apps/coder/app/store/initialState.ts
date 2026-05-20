@@ -1,5 +1,5 @@
-import type { CoderInitialData } from "../features/conversation/state/initialData";
-import { hydrateCoderInitialData } from "../features/conversation/state/hydrateInitialData";
+import type { CoderInitialData } from "@coder/types";
+import { hydrateCoderInitialData } from "../features/threads/hydrateInitialData";
 import { createCoderStore, type AppStore } from "./configureStore";
 
 export function createCoderStoreFromInitialData(initialData?: CoderInitialData): AppStore {

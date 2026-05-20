@@ -1,3 +1,4 @@
+/* Base composer panel styling. */
 .box {
   background: var(--coder-composer-surface);
   border: 1px solid var(--coder-composer-border);
@@ -13,7 +14,9 @@
 .box_dragActive {
   background: var(--coder-composer-surface-active);
   border-color: var(--coder-composer-border-strong);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--coder-accent) 24%, transparent), var(--coder-shadow-lg);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--coder-accent) 24%, transparent),
+    var(--coder-shadow-lg);
 }
 
 .prompt {
@@ -128,6 +131,7 @@
 .rail {
   align-items: center;
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
   justify-content: space-between;
   min-width: 0;
@@ -141,7 +145,12 @@
   min-width: 0;
 }
 
+.leftActions {
+  flex: 1 1 180px;
+}
+
 .rightActions {
+  flex: 1 1 250px;
   justify-content: flex-end;
 }
 
@@ -172,11 +181,22 @@
   border-radius: var(--coder-radius-full);
   color: var(--coder-composer-text-muted);
   display: inline-flex;
+  flex: 0 1 auto;
   font: inherit;
   gap: 7px;
+  max-width: 100%;
+  min-width: 0;
   min-height: 32px;
   padding: 0 6px;
   white-space: nowrap;
+}
+
+.accessButton > span,
+.modelControl > span,
+.reasoningButton > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .accessButton {
@@ -209,7 +229,10 @@
 .contextRing {
   background:
     radial-gradient(circle at center, var(--coder-composer-surface) 0 46%, transparent 48%),
-    conic-gradient(var(--coder-composer-context-ring-fill) var(--context-used-degrees, 0deg), var(--coder-composer-context-ring-track) 0);
+    conic-gradient(
+      var(--coder-composer-context-ring-fill) var(--context-used-degrees, 0deg),
+      var(--coder-composer-context-ring-track) 0
+    );
   border-radius: var(--coder-radius-full);
   height: 16px;
   width: 16px;
@@ -257,20 +280,14 @@
   font-size: 18px;
 }
 
-.runningDot {
-  animation: coderComposerSpin 900ms linear infinite;
-  border: 2px solid var(--coder-composer-spinner-track);
-  border-left-color: var(--coder-composer-context-ring-fill);
-  border-radius: var(--coder-radius-full);
-  height: 18px;
-  width: 18px;
-}
-
 .submitButton {
   background: var(--coder-composer-submit-bg);
   color: var(--coder-composer-submit-text);
   font-size: 20px;
-  transition: background 140ms ease, color 140ms ease, opacity 140ms ease;
+  transition:
+    background 140ms ease,
+    color 140ms ease,
+    opacity 140ms ease;
 }
 
 .submitButton:disabled {
@@ -299,12 +316,6 @@
 .submitButton:focus-visible {
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--coder-accent) 72%, transparent);
   outline: 0;
-}
-
-@keyframes coderComposerSpin {
-  to {
-    transform: rotate(360deg);
-  }
 }
 
 @media (max-width: 520px) {
