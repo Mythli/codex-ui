@@ -19,6 +19,8 @@ export function getCodexTransportController(): CodexTransportController {
   const socket = io("/codex", {
     autoConnect: false,
     path: "/app-socket",
+    transports: ["websocket"],
+    upgrade: false,
     auth: getAppSocketAuth()
   });
   controller = {

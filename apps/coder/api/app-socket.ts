@@ -31,6 +31,7 @@ export function installAppSocketBridge(server: ViteDevServer, path: string) {
 
   const io = new Server(server.httpServer, {
     path,
+    transports: ["websocket"],
     cors: {
       origin: true
     }
