@@ -1,8 +1,7 @@
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import react from "@vitejs/plugin-react";
 import path from "node:path";
-import { defineConfig } from "vite";
-import { appSocketPlugin } from "./api/app-socket";
+import { defineConfig, type Plugin } from "vite";
 
 const codexRoot = path.resolve(__dirname, "../../packages/codex/src");
 const appRoot = path.resolve(__dirname, "app");
@@ -43,3 +42,19 @@ export default defineConfig({
     react()
   ]
 });
+
+function appSocketPlugin(socketPath = "/app-socket"): Plugin {
+  return {
+    name: "app-socket-bridge",
+    async configureServer(server) {
+      const { installAppSocketBridge } = await server.ssrLoadModule<typeof import("./api/app-socket")>(
+        "/api/app-socket.ts"
+      );
+      installAppSocketBridge(server, socketPath);
+    },
+    async configurePreviewServer(server) {
+      const { installCodexAssetRoutes } = await import("./api/app-socket");
+      installCodexAssetRoutes(server);
+    }
+  };
+}

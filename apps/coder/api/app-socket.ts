@@ -22,7 +22,7 @@ export function appSocketPlugin(path = "/app-socket"): Plugin {
   };
 }
 
-function installAppSocketBridge(server: ViteDevServer, path: string) {
+export function installAppSocketBridge(server: ViteDevServer, path: string) {
   if (!server.httpServer) {
     return;
   }
@@ -47,7 +47,7 @@ function installAppSocketBridge(server: ViteDevServer, path: string) {
   });
 }
 
-function installCodexAssetRoutes(server: ViteDevServer | PreviewServer) {
+export function installCodexAssetRoutes(server: ViteDevServer | PreviewServer) {
   server.middlewares.use(`${codexAssets.routeBase}/upload`, (request, response) => {
     if (request.method !== "POST") {
       response.statusCode = 405;
